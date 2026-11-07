@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Checklist de Fermentera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=DM+Sans:wght@400;500;700&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+/* Layout: una columna tipo libreta de cocina; arriba cuándo empezás y el clima, después la calculadora y cada etapa con su hora. */
+:root{
+  --bg:#F7F0E3; --surface:#FFFBF3; --ink:#241C18; --muted:#6B5D52; --line:#E4D8C3;
+  --red:#B8301C; --ember:#F2A33A; --basil:#2F6B3A; --on-red:#FFF7EC; --soft-ember:#FBE3BF; --soft-basil:#DCEBDD; --soft-red:#F6DAD4; --sky:#2D6A93; --soft-sky:#DCEAF3;
+  --bowl:#E6D6BC; --water:#9CCBEA; --flour:#FFFFFF; --dough:#F1D3A0; --skin:#E5B08A; --yeast:#C9A46A; --oven:#3B302B; --on-oven:#F7F0E3;
+  --display:"Fraunces", Georgia, "Times New Roman", serif;
+  --body:"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#1C1512; --surface:#261D19; --ink:#F3E9DA; --muted:#B5A595; --line:#3A2E28;
+  --red:#E0553E; --ember:#F2A33A; --basil:#7DBA88; --on-red:#1C1512; --soft-ember:#3B2C17; --soft-basil:#1F3323; --soft-red:#3D1F19; --sky:#7FB5DA; --soft-sky:#17293A;
+  --bowl:#4A3B32; --water:#3F7AA3; --flour:#EDE4D6; --dough:#D9B27A; --skin:#C48D68; --yeast:#A88550; --oven:#0E0A08; --on-oven:#F7F0E3; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#1C1512; --surface:#261D19; --ink:#F3E9DA; --muted:#B5A595; --line:#3A2E28;
+  --red:#E0553E; --ember:#F2A33A; --basil:#7DBA88; --on-red:#1C1512; --soft-ember:#3B2C17; --soft-basil:#1F3323; --soft-red:#3D1F19; --sky:#7FB5DA; --soft-sky:#17293A;
+  --bowl:#4A3B32; --water:#3F7AA3; --flour:#EDE4D6; --dough:#D9B27A; --skin:#C48D68; --yeast:#A88550; --oven:#0E0A08; --on-oven:#F7F0E3; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:24px 64px}
+.wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--red);font-weight:700}
+header{display:flex;flex-direction:column;gap:12px}
+h1{font-size:clamp(32px,7vw,44px);line-height:1.05;font-weight:700}
+h1 em{font-style:italic;font-weight:500;color:var(--red)}
+.sub{color:var(--muted);margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label,.lbl{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+input[type=text],input[type=number],input[type=datetime-local],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--ember);outline-offset:2px}
+.num{width:84px}
+.inrow{display:flex;gap:6px;align-items:center}
+.inrow input{width:auto;min-width:0}
+.mini{font:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--red);color:var(--red);background:transparent;border-radius:8px;padding:8px 10px;cursor:pointer;white-space:nowrap}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden;background:var(--surface)}
+.seg button{font:inherit;font-weight:500;border:0;background:transparent;color:var(--ink);padding:8px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--red);color:var(--on-red)}
+.progress{display:flex;flex-direction:column;gap:6px}
+.bar{height:8px;background:var(--line);border-radius:999px;overflow:hidden}
+.bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ember),var(--red));transition:width .3s}
+.ptext{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* Plan y clima */
+.plan{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.plan h2{font-size:22px}
+.timeline{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.timeline li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+.timeline li:last-child{border-bottom:0}
+.timeline b{font-variant-numeric:tabular-nums;color:var(--red);white-space:nowrap}
+.timeline li.hl span{font-weight:700}
+.wx{display:flex;flex-direction:column;gap:10px;background:var(--soft-sky);border-radius:10px;padding:12px}
+.wx .wxrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.wx .k{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--sky);font-weight:700;display:block}
+.wx .v{font-family:var(--display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.wx .v small{font-family:var(--body);font-size:13px;font-weight:500;color:var(--muted)}
+.wx .src{font-size:13px;color:var(--muted);margin:0}
+.wx .field{max-width:260px}
+
+/* Fermentación */
+.ferm{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.fcard{border:1.5px solid var(--line);border-radius:12px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;font:inherit;color:var(--ink)}
+.fcard[aria-pressed="true"]{border-color:var(--red);box-shadow:inset 0 0 0 1px var(--red)}
+.fcard h3{font-size:20px}
+.fcard .tag{font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--red)}
+.fcard p{margin:0;font-size:14px;color:var(--muted)}
+
+/* Calculadora */
+.calc{background:var(--surface);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:16px}
+.calc h2{font-size:22px}
+.knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{font:inherit;font-size:22px;font-weight:700;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;flex:none}
+.stepper output{flex:1;min-width:0;text-align:center;font-family:var(--display);font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.stepper output small{font-family:var(--body);font-size:14px;font-weight:500;color:var(--muted);margin-left:2px}
+.hint{font-size:13px;color:var(--muted);margin:0}
+.opts{display:flex;flex-wrap:wrap;gap:14px}
+.recipe{border-top:2px solid var(--ink);padding-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:12px}
+.recipe div{display:flex;flex-direction:column}
+.recipe b{font-family:var(--display);font-size:26px;font-variant-numeric:tabular-nums;line-height:1.1}
+.recipe small{color:var(--muted);font-size:13px}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.facts span{font-size:14px;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-variant-numeric:tabular-nums}
+.alert{margin:0;padding:10px 12px;border-radius:8px;border-left:4px solid var(--red);background:var(--soft-red);font-size:15px}
+.alert.info{border-color:var(--ember);background:var(--soft-ember)}
+
+section{display:flex;flex-direction:column;gap:12px}
+.shead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:2px solid var(--ink);padding-bottom:6px}
+h2{font-size:24px;font-weight:700}
+.when{font-size:14px;font-weight:700;color:var(--red);font-variant-numeric:tabular-nums}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.step{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.step input[type=checkbox]{appearance:none;width:28px;height:28px;margin:0;border:2px solid var(--muted);border-radius:7px;cursor:pointer;display:grid;place-items:center;background:var(--surface)}
+.step input[type=checkbox]:checked{background:var(--basil);border-color:var(--basil)}
+.step input[type=checkbox]:checked::after{content:"";width:8px;height:14px;border:solid var(--surface);border-width:0 3px 3px 0;transform:translateY(-2px) rotate(45deg)}
+.step label{cursor:pointer;min-width:0}
+.step .t{font-weight:700;display:block}
+.step .t .tm{color:var(--red);font-variant-numeric:tabular-nums;margin-right:6px}
+.step .d{color:var(--muted);font-size:15px;display:block}
+.step.done .t{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--basil)}
+.timer{font:inherit;font-size:14px;font-weight:700;border:1.5px solid var(--ember);background:var(--soft-ember);color:var(--ink);border-radius:999px;padding:6px 12px;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.timer.run{background:var(--ember);color:#241C18}
+.timer.fin{background:var(--basil);border-color:var(--basil);color:var(--surface)}
+
+.log{background:var(--surface);border:1.5px dashed var(--line);border-radius:12px;padding:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px}
+.log .lt{grid-column:1/-1;font-family:var(--display);font-style:italic;font-size:17px}
+
+.rate{display:flex;flex-direction:column;gap:14px}
+.rrow{display:flex;flex-direction:column;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{font:inherit;font-size:15px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:6px 14px;cursor:pointer}
+.chips button[aria-pressed="true"].good{background:var(--soft-basil);border-color:var(--basil)}
+.chips button[aria-pressed="true"].bad{background:var(--soft-red);border-color:var(--red)}
+.diag{display:flex;flex-direction:column;gap:8px}
+.diag p{margin:0;padding:10px 12px;border-radius:8px;border-left:4px solid var(--ember);background:var(--soft-ember)}
+.diag p.ok{border-color:var(--basil);background:var(--soft-basil)}
+.diag p.warn{border-color:var(--red);background:var(--soft-red)}
+
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{font:inherit;font-weight:700;border-radius:999px;padding:10px 18px;cursor:pointer;border:1.5px solid var(--red)}
+.btn.primary{background:var(--red);color:var(--on-red)}
+.btn.ghost{background:transparent;color:var(--red)}
+.msg{font-size:14px;color:var(--basil);font-weight:700}
+#fallback{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+/* Ilustraciones */
+.ill{display:block;margin-top:10px;max-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px}
+.ill svg{width:100%;height:auto;display:block}
+.ill .bowl{fill:var(--bowl)}
+.ill .bline{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.ill .water{fill:var(--water)}
+.ill .ice{fill:var(--flour);stroke:var(--ink);stroke-width:1.5;opacity:.9}
+.ill .stream{fill:none;stroke:var(--water);stroke-width:5;stroke-linecap:round}
+.ill .jug,.ill .scale,.ill .spoon,.ill .box,.ill .clock{fill:var(--surface);stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
+.ill .fl{fill:var(--flour);stroke:var(--muted);stroke-width:.8}
+.ill .dough{fill:var(--dough);stroke:var(--ink);stroke-width:2.5;stroke-linejoin:round}
+.ill .paste{fill:var(--dough)}
+.ill .hand{fill:var(--skin);stroke:var(--ink);stroke-width:2.2;stroke-linejoin:round}
+.ill .hline{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-linecap:round}
+.ill .yeast{fill:var(--yeast);stroke:var(--ink);stroke-width:1.5}
+.ill .arw{fill:none;stroke:var(--red);stroke-width:2.5;stroke-linecap:round;marker-end:url(#ah)}
+.ill .arw2{fill:none;stroke:var(--ember);stroke-width:2.5;stroke-linecap:round;marker-end:url(#ah2)}
+.ill .big{fill:var(--red);font:700 13px var(--body)}
+.ill .sm{fill:var(--muted);font:500 10px var(--body)}
+.ill .ovtx{fill:var(--on-oven);font:500 10px var(--body)}
+.ill .disp{fill:var(--ink)} .ill .dt{fill:var(--surface);font:700 8px var(--body)}
+.ill .counter{stroke:var(--muted);stroke-width:3;stroke-linecap:round}
+.ill .towel{fill:var(--soft-red);stroke:var(--red);stroke-width:2;stroke-linejoin:round}
+.ill .light{fill:var(--ember);opacity:.45}
+.ill .sheet{fill:var(--dough);opacity:.65;stroke:var(--ink);stroke-width:1.5}
+.ill .ring{fill:none;stroke:var(--ink);stroke-width:1.5;stroke-dasharray:4 3}
+.ill .tip{fill:var(--skin);stroke:var(--ink);stroke-width:1.2}
+.ill .lead{stroke:var(--muted);stroke-width:1.2}
+.ill .oven{fill:var(--oven)} .ill .flame{fill:var(--ember)} .ill .sauce{fill:var(--red)}
+.ahead{fill:var(--red)} .ahead2{fill:var(--ember)}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<marker id="ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="ahead" d="M0 0L10 5L0 10z"/></marker>
+<marker id="ah2" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="ahead2" d="M0 0L10 5L0 10z"/></marker>
+</defs></svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Il Forno del Tano · Hecho en Fermentera</div>
+    <h1>Checklist de <em>masa</em></h1>
+    <p class="sub" id="sub">Masa napoletana en frío para el Koda 16</p>
+    <div class="controls">
+      <div class="field"><label for="prueba">Prueba Nº</label><input id="prueba" class="num" type="number" min="1" max="99" value="2"></div>
+      <div class="field"><label for="start">Empiezo a amasar</label>
+        <div class="inrow"><input id="start" type="datetime-local" step="900"><button type="button" class="mini" id="now">Ahora</button></div></div>
+    </div>
+    <div class="progress"><div class="bar"><span id="barfill"></span></div><div class="ptext" id="ptext">0 de 0 pasos</div></div>
+  </header>
+
+  <div class="plan" aria-labelledby="h-plan">
+    <h2 id="h-plan">Tu plan</h2>
+    <ul class="timeline" id="timeline"></ul>
+    <div class="wx" aria-labelledby="h-wx">
+      <span class="k" id="h-wx">Clima en Asunción</span>
+      <div class="wxrow" id="wxrow"></div>
+      <p class="src" id="wxsrc"></p>
+      <div class="field"><label for="kitchen">Temperatura de tu cocina (opcional, °C)</label>
+        <input id="kitchen" type="number" inputmode="decimal" min="5" max="45" step="0.5" placeholder="Si la medís, manda sobre el pronóstico"></div>
+    </div>
+  </div>
+
+  <section aria-labelledby="h-ferm">
+    <div class="shead"><h2 id="h-ferm">¿24, 48 o 72 horas?</h2><span class="when">Fermentación en heladera</span></div>
+    <div class="ferm" id="ferm"></div>
+  </section>
+
+  <div class="calc" aria-labelledby="h-calc">
+    <h2 id="h-calc">Calculadora de masa</h2>
+    <div class="knobs">
+      <div class="field"><span class="lbl">Tamaño de la pizza cocida</span>
+        <div class="stepper"><button type="button" data-k="size" data-d="-1" aria-label="Achicar la pizza">−</button><output id="o_size"></output><button type="button" data-k="size" data-d="1" aria-label="Agrandar la pizza">+</button></div>
+        <p class="hint" id="h_size"></p></div>
+      <div class="field"><span class="lbl">Cantidad de bollos</span>
+        <div class="stepper"><button type="button" data-k="n" data-d="-1" aria-label="Menos bollos">−</button><output id="o_n"></output><button type="button" data-k="n" data-d="1" aria-label="Más bollos">+</button></div>
+        <p class="hint" id="h_n"></p></div>
+      <div class="field"><span class="lbl">Hidratación</span>
+        <div class="stepper"><button type="button" data-k="hyd" data-d="-1" aria-label="Menos agua">−</button><output id="o_hyd"></output><button type="button" data-k="hyd" data-d="1" aria-label="Más agua">+</button></div>
+        <p class="hint">Con Molini Pizzuti (W 250) y el calor de Asunción, 62%. Más agua da más alveolo, pero cuesta estirar.</p></div>
+      <div class="field"><span class="lbl">Peso de un cubito</span>
+        <div class="stepper"><button type="button" data-k="cube" data-d="-5" aria-label="Cubito más liviano">−</button><output id="o_cube"></output><button type="button" data-k="cube" data-d="5" aria-label="Cubito más pesado">+</button></div>
+        <p class="hint">Pesá un cubito de tu cubetera una vez. La cantidad de hielo se calcula sola con el clima.</p></div>
+    </div>
+    <div class="opts">
+      <div class="field"><span class="lbl">Levadura</span>
+        <div class="seg" role="group" aria-label="Tipo de levadura">
+          <button type="button" data-opt="yeast" data-v="fresca">Fresca</button>
+          <button type="button" data-opt="yeast" data-v="seca">Seca instantánea</button>
+        </div></div>
+      <div class="field"><span class="lbl">Heladera</span>
+        <div class="seg" role="group" aria-label="Temperatura de la heladera">
+          <button type="button" data-opt="fridge" data-v="frio">4 °C</button>
+          <button type="button" data-opt="fridge" data-v="tibia">6–8 °C</button>
+        </div></div>
+    </div>
+    <div class="recipe" id="recipe" aria-live="polite"></div>
+    <div class="facts" id="facts"></div>
+    <div id="alerts" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <div id="sections"></div>
+
+  <section aria-labelledby="h-res">
+    <div class="shead"><h2 id="h-res">Cómo salió</h2><span class="when">Después de comer</span></div>
+    <div class="rate" id="rate"></div>
+    <div class="field"><label for="notas">Notas</label><textarea id="notas" rows="3" placeholder="Qué cambiarías para la próxima prueba"></textarea></div>
+    <div class="diag" id="diag"></div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="btn primary" id="copy">Copiar registro</button>
+    <button type="button" class="btn ghost" id="reset">Nueva prueba</button>
+    <span class="msg" id="msg" role="status"></span>
+  </div>
+  <textarea id="fallback" hidden readonly aria-label="Registro para copiar"></textarea>
+</div>
+
+<script>
+/* Base del cálculo: pizza de 35 cm cocida = masa estirada a 33 cm = bollo de 270 g (decisión del 22/10).
+   El peso del bollo escala con la superficie: 270 × (diámetro estirado / 33)². */
+const LIMITS={size:[26,40],n:[1,60],hyd:[58,72],cube:[10,50]};
+const KEY="fermentera-checklist-v1";
+const pad=n=>String(n).padStart(2,"0");
+const toInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const nextQuarter=()=>{const d=new Date();d.setSeconds(0,0);d.setMinutes(Math.ceil((d.getMinutes()+1)/15)*15);return d;};
+
+let S={prueba:2,checks:{},fields:{},rate:{},notas:"",ferm:24,start:"",kitchen:"",calc:{size:35,n:6,hyd:62,yeast:"fresca",fridge:"frio",cube:25}};
+try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.calc=Object.assign({size:35,n:6,hyd:62,yeast:"fresca",fridge:"frio",cube:25},o.calc||{});}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+/* Prueba 2: arranca el sábado 7/11 a las 20:00 con 24 h en frío (una sola vez por navegador) */
+if(S.seed4!=="p2"){
+  if(String(S.prueba)==="1"){S.prueba=2;S.checks={};S.fields={};S.rate={};S.notas="";}
+  S.start="2026-11-07T20:00";S.ferm=24;S.calc.hyd=62;S.seed4="p2";save();
+}
+if(![24,48,72].includes(S.ferm))S.ferm=48;
+if(!S.start)S.start=toInput(nextQuarter());
+
+/* Pronóstico por hora para Asunción. Se reemplaza por el último que guarda la actualización automática. */
+let W={updated:"2026-11-07 19:15",source:"tiempo.com",hours:{
+"2026-11-07T19":24,"2026-11-07T20":22,"2026-11-07T21":22,"2026-11-07T22":21,"2026-11-07T23":21,
+"2026-11-08T00":20,"2026-11-08T01":19,"2026-11-08T02":19,"2026-11-08T03":18,"2026-11-08T04":18,"2026-11-08T05":17,"2026-11-08T06":17,"2026-11-08T07":17,"2026-11-08T08":18,"2026-11-08T09":20,"2026-11-08T10":21,"2026-11-08T11":22,"2026-11-08T12":23,"2026-11-08T13":23,"2026-11-08T14":24,"2026-11-08T15":24,"2026-11-08T16":24,"2026-11-08T17":23,"2026-11-08T18":22,"2026-11-08T19":21,"2026-11-08T20":20,"2026-11-08T21":19,"2026-11-08T22":18}};
+let wxLive=false;
+const hk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}`;
+const tempAt=d=>{const v=W.hours&&W.hours[hk(d)];return typeof v==="number"?v:null;};
+
+const DAYS=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const parse=s=>{const [a,b]=String(s).split("T");const [y,mo,da]=a.split("-").map(Number);const [h,mi]=(b||"00:00").split(":").map(Number);return new Date(y,mo-1,da,h,mi);};
+const add=(d,m)=>new Date(d.getTime()+m*60000);
+const fT=d=>`${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fD=d=>`${DAYS[d.getDay()]} ${d.getDate()}/${d.getMonth()+1} · ${fT(d)}`;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+const FERM={
+ 24:{tag:"Rápida",t:"24 horas",d:"Sabor suave, a pan fresco. Lleva el doble de levadura para llegar a tiempo. Se estira fácil; el borde infla bien, pero con alveolos más chicos y un dorado más parejo. Ideal para amasar la noche anterior."},
+ 48:{tag:"El punto justo",t:"48 horas",d:"Más sabor, con notas lácteas y una acidez leve. Queda más liviana y digerible porque la fermentación larga desarma más almidón y gluten. Borde más aireado y con manchas de leopardo. Es la que mejor anda con la Pizzuti (W 250)."},
+ 72:{tag:"Máximo sabor",t:"72 horas",d:"Sabor más complejo y ácido, masa muy extensible y liviana. Con una harina de fuerza media se puede pasar: queda floja, se rompe al estirar y dora rápido, con riesgo de quemarse abajo. Pide heladera estable a 4 °C y harina más fuerte (W 280–320)."}
+};
+
+/* Plan: todo sale de la hora de inicio, las horas de frío y el clima.
+   Temperatura de masa objetivo 23 °C: agua = 3×23 − 2×ambiente − 3 (fricción del amasado a mano). */
+function plan(){
+  const st=parse(S.start);
+  const k=parseFloat(String(S.kitchen).replace(",","."));
+  const fcMix=tempAt(st);
+  const room=!isNaN(k)?k:(fcMix!=null?fcMix:27);
+  const roomSrc=!isNaN(k)?"medida":(fcMix!=null?"pronóstico":"sin pronóstico, estimada");
+  const P=room<=26?60:room<=30?45:30;
+  const fridgeIn=add(st,45+P);
+  const bake=add(st,S.ferm*60);
+  const fcOut=tempAt(add(bake,-120));
+  const tOut=fcOut!=null?fcOut:room;
+  const A=tOut<=22?150:tOut<=26?120:tOut<=30?90:60;
+  const out=add(bake,-A),oven=add(bake,-30);
+  const target=clamp(Math.round(69-2*room-3),2,20);
+  const tap=clamp(Math.round(room),18,32);
+  return {st,room,roomSrc,P,fridgeIn,bake,tOut,outSrc:fcOut!=null?"pronóstico":"estimada",A,out,oven,target,tap};
+}
+let PL=plan();
+
+const r5=x=>Math.round(x/5)*5;
+const g=x=>x.toLocaleString("es-PY")+" g";
+const dec=x=>x.toLocaleString("es-PY",{minimumFractionDigits:1,maximumFractionDigits:1})+" g";
+function calc(){
+  const c=S.calc,raw=c.size-2,k=(raw/33)**2;
+  const ball=r5(270*k);
+  const base={24:0.003,48:0.0015,72:0.001}[S.ferm];
+  const pct=base*(c.fridge==="frio"?1:0.67);          // levadura fresca sobre harina
+  const yPct=c.yeast==="seca"?pct/3:pct;
+  const dough=ball*c.n*1.03;                           // 3% de merma (bowl, manos)
+  const flour=r5(dough/(1+c.hyd/100+0.028+yPct));
+  const yeast=Math.max(0.1,Math.round(flour*yPct*10)/10);
+  const water=r5(flour*c.hyd/100);
+  /* Hielo: cuenta dentro del agua total; derretir 1 g de hielo enfría como 80 g·°C. */
+  let iceG=PL.tap>PL.target?water*(PL.tap-PL.target)/(PL.tap+80):0;
+  const cubes=Math.round(iceG/c.cube);iceG=Math.min(cubes*c.cube,water);
+  const liq=water-iceG;
+  const tf=Math.round((liq*PL.tap-iceG*80)/water);
+  return {size:c.size,raw,n:c.n,hyd:c.hyd,ball,flour,water,salt:Math.round(flour*0.028),yeast,
+    yeastName:c.yeast==="seca"?"levadura seca instantánea":"levadura fresca",
+    t1:r5(flour/3),t3:flour-2*r5(flour/3),dough:Math.round(ball*c.n),
+    tom:r5(80*k),mozz:r5(120*k),cubes,iceG,liq,tf,warm:PL.target>PL.tap+1};
+}
+let C=calc();
+const waterText=()=>C.cubes?`${C.cubes} cubitos (${g(C.iceG)}) + ${g(C.liq)} de agua de la canilla = ${g(C.water)}. Queda a ~${C.tf} °C.`:(C.warm?`${g(C.water)} de agua templada a ~${PL.target} °C (canilla con un chorrito de agua caliente). Hoy no hace falta hielo.`:`${g(C.water)} de agua de la canilla, a ~${PL.tap} °C. Hoy no hace falta hielo.`);
+
+/* Ilustraciones propias en SVG, coloreadas con los tokens del tema */
+const BP="M18 46H142Q138 94 80 94Q22 94 18 46Z";
+const B0=`<path class="bowl" d="${BP}"/>`;
+const B1=`<path class="bline" d="${BP}"/><path class="bline" d="M12 46H148"/>`;
+const WATER=`<path class="water" d="M24 58H136Q130 90 80 90Q30 90 24 58Z"/>`;
+function hand(x,y,r,s){return `<g transform="translate(${x} ${y}) rotate(${r}) scale(${s||1})"><path class="hand" d="M15 -16q12 0 11 12q-1 6-8 6"/><path class="hand" d="M-15 -26h30v24q0 14-15 14q-15 0-15-14z"/><path class="hline" d="M-5 0v8M5 0v8"/></g>`;}
+function dots(x,y,w,h,n,cls,r){let s="";for(let i=0;i<n;i++){const a=Math.sin(i*12.9898+n)*43758.5453,b=Math.sin(i*78.233+n)*12345.678;s+=`<circle class="${cls||"fl"}" cx="${(x+(a-Math.floor(a))*w).toFixed(1)}" cy="${(y+(b-Math.floor(b))*h).toFixed(1)}" r="${r||2.2}"/>`;}return s;}
+const svg=b=>`<svg viewBox="0 0 160 100">${b}</svg>`;
+const ILL={
+ pesar:()=>svg(`<rect class="scale" x="22" y="58" width="116" height="7" rx="3"/><rect class="scale" x="30" y="65" width="100" height="26" rx="6"/><rect class="disp" x="58" y="71" width="44" height="13" rx="2"/><text class="dt" x="80" y="80.5" text-anchor="middle">0 g</text><circle class="clock" cx="116" cy="78" r="5"/><text class="sm" x="116" y="99" text-anchor="middle">tara</text><path class="bowl" d="M42 22H118Q114 58 80 58Q46 58 42 22Z"/><path class="bline" d="M42 22H118Q114 58 80 58Q46 58 42 22Z"/><path class="bline" d="M38 22H122"/>`),
+ agua:()=>svg(`${B0}${WATER}${C.cubes?'<rect class="ice" x="44" y="60" width="13" height="12" rx="2" transform="rotate(-12 50 66)"/><rect class="ice" x="96" y="62" width="13" height="12" rx="2" transform="rotate(10 102 68)"/><rect class="ice" x="114" y="58" width="11" height="11" rx="2"/>':""}<path class="stream" d="M64 21Q78 26 80 62"/>${B1}<g transform="rotate(35 40 26)"><path class="jug" d="M22 16q-10 0-10 10t10 10"/><rect class="jug" x="22" y="8" width="34" height="36" rx="4"/></g><text class="big" x="150" y="20" text-anchor="end">${C.water} g</text>`),
+ levadura:()=>svg(`${B0}${WATER}<path class="arw" d="M56 72a24 9 0 1 0 48 0"/>${B1}<rect class="yeast" x="66" y="12" width="9" height="7" rx="1.5" transform="rotate(20 70 15)"/><rect class="yeast" x="84" y="22" width="8" height="6" rx="1.5" transform="rotate(-15 88 25)"/><rect class="yeast" x="74" y="32" width="7" height="6" rx="1.5"/>`),
+ harina1:()=>svg(`${B0}${WATER}<ellipse class="fl" cx="80" cy="60" rx="22" ry="4"/><path class="arw" d="M52 74a28 9 0 1 0 56 0"/>${B1}${dots(66,4,28,38,16)}<text class="big" x="150" y="20" text-anchor="end">${C.t1} g</text>`),
+ sal:()=>svg(`${B0}<path class="paste" d="M24 58H136Q130 90 80 90Q30 90 24 58Z"/>${B1}${dots(60,30,30,14,9,"fl",1.6)}<g transform="rotate(-20 70 20)"><path class="bline" d="M79 20H118"/><ellipse class="spoon" cx="66" cy="20" rx="13" ry="7"/></g><text class="big" x="150" y="20" text-anchor="end">${C.salt} g</text>`),
+ harina2:()=>svg(`${B0}<path class="dough" d="M30 74q6-16 20-10q8-12 20-6q10-10 22-2q14-6 20 6q12 0 14 12q-6 18-50 18q-42 0-46-18z"/>${dots(44,58,70,14,10,"fl",1.8)}${B1}${hand(104,26,-20,.85)}<text class="big" x="8" y="20">${C.t1} g</text>`),
+ harina3:()=>svg(`${B0}<path class="dough" d="M36 72q6-22 44-22q38 0 44 22q-6 16-44 16q-38 0-44-16z"/>${B1}<path class="arw" d="M24 34q10-16 32-6"/><path class="arw" d="M136 34q-10-16-32-6"/><text class="big" x="80" y="18" text-anchor="middle">${C.t3} g</text>`),
+ amasar:()=>svg(`<path class="counter" d="M6 86H154"/><path class="dough" d="M22 85q2-22 48-24q46 0 62 24z"/>${hand(62,50,-60,.85)}<path class="arw" d="M84 28H130"/><path class="arw" d="M146 78q8-34-22-40"/><text class="sm" x="80" y="99" text-anchor="middle">empujar · plegar · girar ¼</text>`),
+ ventana:()=>svg(`<circle class="light" cx="80" cy="46" r="32"/><path class="sheet" d="M38 48q20-32 42-28q22-4 42 28q-20 30-42 28q-22 2-42-28z"/>${hand(26,48,-90,.8)}${hand(134,48,90,.8)}<text class="sm" x="80" y="98" text-anchor="middle">fina y translúcida, sin romperse</text>`),
+ reposo:()=>svg(`${B0}${B1}<path class="towel" d="M8 48q72-34 144 0v8q-72-26-144 0z"/><circle class="clock" cx="136" cy="18" r="13"/><path class="bline" d="M136 18V10M136 18l6 4"/>`),
+ bollar:()=>svg(`<path class="counter" d="M6 90H154"/><circle class="dough" cx="26" cy="77" r="12"/><ellipse class="dough" cx="80" cy="74" rx="17" ry="15"/>${hand(56,70,-90,.65)}${hand(104,70,90,.65)}<path class="arw" d="M68 46q12-10 24 0"/><circle class="dough" cx="136" cy="77" r="12"/><text class="big" x="136" y="52" text-anchor="middle">${C.ball} g</text>`),
+ cajas:()=>svg(`<rect class="box" x="16" y="34" width="128" height="60" rx="6"/>${[42,80,118].map(x=>[51,77].map(y=>`<circle class="dough" cx="${x}" cy="${y}" r="11"/>`).join("")).join("")}<path class="lead" d="M53 26H69M53 22V30M69 22V30"/><text class="big" x="61" y="17" text-anchor="middle">5 cm</text>`),
+ estirar:()=>svg(`<circle class="dough" cx="66" cy="50" r="44"/><circle class="ring" cx="66" cy="50" r="34"/>${[[54,40],[70,36],[60,56],[78,52],[66,64],[48,52]].map(([x,y])=>`<ellipse class="tip" cx="${x}" cy="${y}" rx="4" ry="5"/>`).join("")}<path class="lead" d="M104 34L122 26"/><text class="big" x="124" y="26">2 cm</text><text class="big" x="138" y="62" text-anchor="middle">${C.raw} cm</text><text class="sm" x="138" y="75" text-anchor="middle">de diámetro</text>`),
+ girar:()=>svg(`<path class="oven" d="M8 94V34Q8 10 34 10H126Q152 10 152 34V94Z"/><path class="flame" d="M22 30q7-12 14 0q7-14 14 0q7-12 14 0q7-14 14 0q7-12 14 0q7-14 14 0q7-12 14 0q7-14 14 0q7-12 14 0z"/><ellipse class="dough" cx="80" cy="68" rx="40" ry="14"/><ellipse class="sauce" cx="80" cy="68" rx="30" ry="9"/><path class="arw2" d="M40 52A44 16 0 0 1 120 52"/><text class="ovtx" x="80" y="90" text-anchor="middle">${C.size>=38?"girar cada 10–15 s":"girar cada 15–20 s"}</text>`)
+};
+
+const SECTIONS=[
+ {id:"prep",title:"Antes de amasar",when:()=>"Antes de las "+fT(PL.st),steps:[
+  {id:"p1",t:()=>C.cubes?"Hielo en el freezer":"El agua",d:()=>C.cubes?`${C.cubes} cubitos (unos ${g(C.iceG)}). El resto del agua (${g(C.liq)}) va de la canilla: con ${PL.room} °C en la cocina, el hielo la deja a ~${C.tf} °C.`:waterText()},
+  {id:"p2",t:"Ingredientes pesados",d:()=>`${g(C.flour)} de harina 00, ${g(C.salt)} de sal fina y ${dec(C.yeast)} de ${C.yeastName}.`},
+  {id:"p3",t:()=>`${C.n} lugares en cajas o tuppers aceitados, con tapa`,d:"5 cm entre bollos. Una cucharadita de aceite de oliva por caja."},
+  {id:"p4",t:"Balanza y termómetro de pinchar a mano",d:()=>C.yeast<1?"La levadura pesa menos de 1 g: disolvé 10 veces esa cantidad en 100 g del agua y usá 10 g de esa mezcla.":""},
+  {id:"p5",t:"Heladera medida",d:"Si marca más de 4 °C, elegí 6–8 °C en la calculadora: baja la levadura sola."}
+ ]},
+ {id:"d1",title:"Amasado",when:()=>fD(PL.st),steps:[
+  {id:"m1",tm:()=>fT(PL.st),t:"Pesar con la tara",ill:"pesar",d:()=>`Poné el bowl vacío en la balanza y tocá tara para dejarla en 0. Pesá cada ingrediente así, uno por vez, y volvé a tarar entre uno y otro. La harina pesala aparte en otro recipiente: ${g(C.flour)}.`},
+  {id:"m2",t:()=>C.cubes?"El agua con hielo, primero":"El agua primero",ill:"agua",d:()=>C.cubes?`Bowl grande sobre la balanza y tara. Poné los ${C.cubes} cubitos (${g(C.iceG)}) y completá con agua de la canilla hasta llegar a ${g(C.water)} en total. El hielo cuenta como agua: siempre va pesado dentro del total, nunca por fuera. Revolvé 1–2 minutos hasta que se derrita.`:`${waterText()} Siempre va primero el líquido y después la harina: así no quedan grumos secos en el fondo.`},
+  {id:"m3",t:"Disolver la levadura",ill:"levadura",d:()=>C.yeast<1?"Volcá la mezcla de levadura que preparaste (10 g) en el agua del bowl y revolvé 1 minuto.":(S.calc.yeast==="seca"?`Espolvoreá los ${dec(C.yeast)} de levadura seca sobre el agua y revolvé 1 minuto con la mano.`:`Desmenuzá los ${dec(C.yeast)} de levadura fresca con los dedos sobre el agua y revolvé 1 minuto, hasta que no queden pedacitos. El agua queda apenas turbia.`)},
+  {id:"m4",t:"Primer tercio de harina: la papilla",ill:"harina1",d:()=>`Agregá ${g(C.t1)} de harina en lluvia, de a puñados, mientras revolvés en círculos con la mano abierta o una cuchara de madera. Seguí hasta tener una papilla lisa, como una crema espesa, sin grumos.`,min:2},
+  {id:"m5",t:"La sal",ill:"sal",d:()=>`Espolvoreá los ${g(C.salt)} de sal sobre la papilla y mezclá 1 minuto hasta que se disuelva. Va recién ahora: si toca la levadura directo, la frena.`},
+  {id:"m6",t:"Segundo tercio de harina",ill:"harina2",d:()=>`Sumá otros ${g(C.t1)}, de a puñados, mezclando con la mano en forma de garra en círculos. Queda una masa pegajosa y despareja: está bien así.`},
+  {id:"m7",t:"Último tercio: hasta que se despegue",ill:"harina3",d:()=>`Agregá el resto (${g(C.t3)}) de a poco. Juntá la masa desde los bordes hacia el centro y apretala contra el bowl, hasta que se despegue de las paredes y no quede harina suelta. Son 3 a 4 minutos.`,min:4},
+  {id:"m8",t:"Volcar a la mesada y amasar",ill:"amasar",d:()=>C.flour>2000?"Con más de 2 kg de harina, dividí la masa en dos y amasá cada mitad. Técnica: empujá con el talón de la mano hacia adelante, plegá la masa hacia vos, girala un cuarto de vuelta y repetí.":"Mesada limpia y sin harina abajo. Empujá la masa con el talón de la mano hacia adelante, plegala hacia vos, girala un cuarto de vuelta y repetí, con ritmo. Al principio se pega: no agregues harina, raspá con la rasqueta. Si se pega mucho, tapala 10 minutos y seguí. En 10 a 12 minutos queda lisa.",min:12},
+  {id:"m9",t:"Prueba de la ventana",ill:"ventana",d:"Cortá un trocito y estiralo despacio entre los dedos. Si se pone fino y translúcido sin romperse, está lista. Si se rompe enseguida, amasá 2–3 minutos más."},
+  {id:"m10",t:"Reposo de 15 minutos y 2 minutos más de amasado",ill:"reposo",d:"Tapala con el bowl dado vuelta o un repasador húmedo. Después de amasar de nuevo queda sedosa y brillante.",min:15},
+  {id:"m11",t:"Medir la temperatura de la masa",d:"Pinchá el centro con el termómetro. La meta es 23–24 °C. Anotala abajo."},
+  {id:"m12",t:()=>`Puntata: ${PL.P} minutos tapada`,ill:"reposo",d:()=>`Masa entera en el bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P} minutos: con más calor fermenta más rápido.`,min:()=>PL.P},
+  {id:"m13",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.`},
+  {id:"m14",t:"A las cajas",ill:"cajas",d:"Con el cierre hacia abajo, 5 cm entre bollos y la caja bien tapada para que no se seque la piel."},
+  {id:"m15",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.`}
+ ],log:{title:"Registro del amasado",fields:[["l_ini","Hora de inicio"],["l_amb","Temp. ambiente (°C)"],["l_agua","Temp. agua (°C)"],["l_masa","Temp. masa final (°C)"],["l_hel","Temp. heladera (°C)"],["l_hora","Hora a la heladera"]]}},
+ {id:"d3",title:"Horneado",when:()=>fD(PL.out)+" a "+fT(PL.bake),steps:[
+  {id:"b1",tm:()=>fT(PL.out),t:"Sacar los bollos de la heladera",d:()=>`${PL.A} minutos antes de la primera pizza, calculado con ${PL.tOut} °C (${PL.outSrc}). Siguen tapados, en el lugar más fresco de la cocina.`,min:()=>PL.A},
+  {id:"b2",t:"Preparar los ingredientes",d:()=>`Por pizza: ${g(C.tom)} de tomate pelado triturado a mano con sal y ${g(C.mozz)} de fior di latte escurrido. Para ${C.n}: ${g(C.tom*C.n)} de tomate y ${g(C.mozz*C.n)} de queso.`},
+  {id:"b3",tm:()=>fT(PL.oven),t:"Prender el Koda 16 al máximo",d:"25 a 30 minutos.",min:30},
+  {id:"b4",t:"Medir la piedra",d:"Centro de la piedra a 430–450 °C con el infrarrojo."},
+  {id:"b5",t:"Controlar los bollos",d:"Relajados e inflados. Al apretarlos, la marca vuelve despacio."},
+  {id:"b6",tm:()=>fT(PL.bake),t:()=>`Estirar a ${C.raw} cm`,ill:"estirar",d:()=>`Con sémola y la yema de los dedos, dejando 2 cm de borde sin tocar. Sin palote. Sacudí el exceso de sémola: la que sobra se quema en la piedra. En la pala de 16" (40 cm) tienen que quedar ~${((40.6-C.raw)/2).toFixed(1).replace(".",",")} cm libres por costado.`},
+  {id:"b7",t:"Bajar la llama a medio y meter la pizza",d:"Sacudí la pala de costado antes de cargar. Si la pizza no se desliza, levantá el borde y tirá un poco de sémola debajo."},
+  {id:"b8",t:()=>C.size>=38?"Girar cada 10–15 segundos y sacar a los 60–90":"Girar cada 15–20 segundos y sacar a los 60–90",ill:"girar",d:"Sale con el borde inflado y manchas doradas abajo."},
+  {id:"b9",t:"Cepillar la piedra entre pizza y pizza",d:"Con el cepillo de bronce, sacá la sémola quemada y los restos antes de que se carbonicen."},
+  {id:"b10",t:"Al terminar: quemar los restos",d:"Dejá el horno al máximo 15–30 minutos después de la última pizza. Con el horno frío, cepillá la piedra y pasale un trapo seco. Nunca agua ni detergente; las manchas oscuras son normales."}
+ ],log:{title:"Registro del horneado",fields:[["l_saca","Hora que salieron los bollos"],["l_piedra","Temp. piedra (°C)"],["l_coc","Tiempo de cocción (s)"]]}}
+];
+const RATE=[
+ {id:"r1",t:"Al estirar",o:[["rompe","Se rompe","bad"],["bien","Bien","good"],["encoge","Se encoge","bad"]]},
+ {id:"r2",t:"Borde",o:[["plano","Plano","bad"],["medio","Medio","bad"],["inflado","Inflado","good"]]},
+ {id:"r3",t:"Abajo",o:[["palida","Pálida","bad"],["dorada","Dorada","good"],["quemada","Quemada","bad"]]},
+ {id:"r4",t:"Al comerla",o:[["pesada","Pesada","bad"],["liviana","Liviana","good"]]},
+ {id:"r5",t:"Tamaño final",o:[["chica","Chica","bad"],["justa","El tamaño elegido","good"],["grande","Más grande","bad"]]}
+];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const val=x=>typeof x==="function"?x():x;
+const fmt=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0");};
+
+function renderPlan(){
+  const rows=[["Empezás a amasar",PL.st,1],["A la heladera",PL.fridgeIn],["Sacás los bollos",PL.out],["Prendés el horno",PL.oven],["Primera pizza",PL.bake,1]];
+  $("#timeline").innerHTML=rows.map(([l,d,h])=>`<li${h?' class="hl"':""}><span>${l}</span><b>${fD(d)}</b></li>`).join("");
+  $("#wxrow").innerHTML=[
+    ["Al amasar",`${PL.room} °C`,PL.roomSrc],
+    ["Al sacar los bollos",`${PL.tOut} °C`,PL.outSrc],
+    ["Agua",C.cubes?`${C.cubes} cubitos`:(C.warm?`~${PL.target} °C`:"Sin hielo"),C.cubes?`agua a ~${C.tf} °C`:"de la canilla"],
+    ["Puntata y atemperado",`${PL.P} + ${PL.A} min`,"según el calor"]
+  ].map(([k,v,s])=>`<div><span class="k">${k}</span><span class="v">${v} <small>${s}</small></span></div>`).join("");
+  $("#wxsrc").textContent=`Pronóstico por hora de ${W.source}, actualizado ${W.updated}${wxLive?"":" (copia guardada en la página)"}. Para amasar se toma la hora de inicio; para sacar los bollos, 2 h antes de la primera pizza.`;
+}
+function renderFerm(){
+  $("#ferm").innerHTML=[24,48,72].map(h=>`<button type="button" class="fcard" data-ferm="${h}" aria-pressed="${S.ferm===h}"><span class="tag">${FERM[h].tag}</span><h3>${FERM[h].t}</h3><p>${FERM[h].d}</p></button>`).join("");
+}
+function renderCalc(){
+  PL=plan();C=calc();const c=S.calc;
+  $("#o_size").innerHTML=`${c.size}<small>cm</small>`;
+  $("#o_n").innerHTML=`${c.n}<small>${c.n===1?"bollo":"bollos"}</small>`;
+  $("#o_hyd").innerHTML=`${c.hyd}<small>%</small>`;
+  $("#o_cube").innerHTML=`${c.cube}<small>g c/u</small>`;
+  $("#h_size").textContent=`Bollo de ${g(C.ball)}, estirado a ${C.raw} cm.`;
+  const ev=Math.round(c.n/0.6);
+  $("#h_n").textContent=c.n>=10?`En evento alcanza para unas ${ev} personas (≈0,6 pizza por persona).`:`${c.n} ${c.n===1?"pizza":"pizzas"} de ${c.size} cm.`;
+  document.querySelectorAll("[data-opt]").forEach(b=>b.setAttribute("aria-pressed",S.calc[b.dataset.opt]===b.dataset.v));
+  $("#recipe").innerHTML=[[g(C.flour),"harina 00"],[g(C.water),C.cubes?`agua total (${c.hyd}%): ${C.iceG} g hielo + ${C.liq} g agua`:`agua (${c.hyd}%)`],[g(C.salt),"sal fina"],[dec(C.yeast),`${C.yeastName} (${S.ferm} h)`],[`${c.n} × ${C.ball}`,"bollos (g)"]]
+    .map(([b,s])=>`<div><b>${b}</b><small>${s}</small></div>`).join("");
+  $("#facts").innerHTML=[`Masa total ≈ ${g(C.dough)} + 3% de merma`,`Agua a ~${C.cubes?C.tf:(C.warm?PL.target:PL.tap)} °C`,`Estirar a ${C.raw} cm`,`Por pizza: ${g(C.tom)} de tomate y ${g(C.mozz)} de queso`]
+    .map(t=>`<span>${t}</span>`).join("");
+  const al=[];
+  if(c.size>=38)al.push(["",`Con ${c.size} cm la pizza queda justa en el Koda 16 (máximo 40 cm): girala más seguido y bajá la llama apenas entra.`]);
+  else if(c.size>=36)al.push(["info",`${c.size} cm entra en el Koda 16, pero el estándar del plan es 35 cm (costos y pizzas por evento están calculados así).`]);
+  if(c.size<35)al.push(["info",`El plan no hace pizzas chicas: el estándar es 35 cm.`]);
+  if(C.flour>2000)al.push(["info",`Son ${g(C.flour)} de harina: amasá en tandas de hasta 1–1,5 kg o usá amasadora.`]);
+  if(PL.roomSrc.startsWith("sin"))al.push(["info","No hay pronóstico para esa hora: cargá la temperatura de tu cocina en \"Tu plan\" para afinar el agua y los tiempos."]);
+  if(PL.room>=32)al.push(["",`Con ${PL.room} °C la masa se calienta rápido: amasá en el lugar más fresco o con aire acondicionado, y no te pases de los ${PL.P} minutos de puntata.`]);
+  if(S.ferm===72)al.push(["info","72 h es mucho para una harina de W 250: si al estirar se rompe, volvé a 48 h."]);
+  if(c.hyd>=69)al.push(["info",`Con ${c.hyd}% de agua la masa es muy húmeda para el calor de Asunción: probá primero con 62–63%.`]);
+  $("#alerts").innerHTML=al.map(([k,t])=>`<p class="alert ${k}">${t}</p>`).join("");
+  $("#sub").textContent=`Masa napoletana · ${S.ferm} h en frío · ${c.n} ${c.n===1?"bollo":"bollos"} de ${C.ball} g · pizza de ${c.size} cm en el Koda 16`;
+  renderPlan();
+}
+
+function renderSections(){
+  const host=$("#sections");host.innerHTML="";
+  SECTIONS.forEach(sec=>{
+    const el=document.createElement("section");
+    let h=`<div class="shead"><h2>${sec.title}</h2><span class="when">${esc(sec.when())}</span></div><ul class="steps">`;
+    sec.steps.forEach(st=>{
+      const on=!!S.checks[st.id],d=val(st.d),mn=val(st.min);
+      h+=`<li class="step${on?" done":""}" data-step="${st.id}"><input type="checkbox" id="c_${st.id}" ${on?"checked":""}>
+      <label for="c_${st.id}"><span class="t">${st.tm?`<span class="tm">${val(st.tm)}</span>`:""}${esc(val(st.t))}</span>${d?`<span class="d">${esc(d)}</span>`:""}${st.ill?`<span class="ill" aria-hidden="true">${ILL[st.ill]()}</span>`:""}</label>
+      ${mn?`<button type="button" class="timer" data-min="${mn}" aria-label="Temporizador de ${mn} minutos">${timerLabel(st.id,mn)}</button>`:"<span></span>"}</li>`;
+    });
+    h+="</ul>";
+    if(sec.log){h+=`<div class="log"><div class="lt">${sec.log.title}</div>`+sec.log.fields.map(([id,l])=>`<div class="field"><label for="${id}">${l}</label><input type="text" id="${id}" inputmode="decimal" value="${esc(S.fields[id]||"")}"></div>`).join("")+"</div>";}
+    el.innerHTML=h;host.appendChild(el);
+  });
+}
+function renderAll(){renderCalc();renderFerm();renderSections();}
+function render(){
+  renderAll();
+  $("#rate").innerHTML=RATE.map(r=>`<div class="rrow"><span class="lbl">${r.t}</span><div class="chips" data-r="${r.id}">`+r.o.map(([v,l,c])=>`<button type="button" class="${c}" data-v="${v}" aria-pressed="${S.rate[r.id]===v}">${l}</button>`).join("")+"</div></div>").join("");
+  $("#prueba").value=S.prueba;$("#start").value=S.start;$("#kitchen").value=S.kitchen||"";$("#notas").value=S.notas||"";
+  progress();diag();
+}
+function progress(){
+  const all=SECTIONS.flatMap(s=>s.steps.map(x=>x.id));const n=all.filter(id=>S.checks[id]).length;
+  $("#barfill").style.width=(n/all.length*100)+"%";$("#ptext").textContent=`${n} de ${all.length} pasos`+(n===all.length?" · ¡a comer!":"");
+}
+function diag(){
+  const r=S.rate,out=[];
+  if(r.r1==="rompe")out.push(["warn","Fermentó de más: bajá a menos horas en frío, elegí heladera 6–8 °C en la calculadora o sacá los bollos más tarde."]);
+  if(r.r1==="encoge"||r.r3==="palida")out.push(["warn","Le faltó fermentación: dejá los bollos más tiempo afuera o subí las horas en frío."]);
+  if(r.r3==="quemada")out.push(["warn","Se quemó abajo: bajá la llama antes de meterla y medí que la piedra no pase de 450 °C."]);
+  if(r.r2==="plano"||r.r2==="medio")out.push(["","Borde poco inflado: no aplastes los 2 cm del borde al estirar y revisá que la piedra esté a 430 °C o más."]);
+  if(r.r4==="pesada")out.push(["","Pesada: suele ser falta de fermentación o masa muy fría al estirar."]);
+  if(r.r5==="chica")out.push(["","Quedó chica: estirá hasta dejar ~3,5 cm libres por costado en la pala de 16\". Si con la hidratación bien medida igual queda chica, subí el tamaño a 36 cm en la calculadora (bollo de ~285 g)."]);
+  if(RATE.every(x=>r[x.id])&&!out.length)out.push(["ok","Salió como tiene que salir: repetí la receta igual en la próxima prueba para confirmarla."]);
+  $("#diag").innerHTML=out.map(([c,t])=>`<p class="${c}">${t}</p>`).join("");
+}
+
+document.addEventListener("change",e=>{
+  if(e.target.matches('.step input[type=checkbox]')){const id=e.target.id.slice(2);S.checks[id]=e.target.checked;e.target.closest(".step").classList.toggle("done",e.target.checked);progress();save();}
+  else if(e.target.id==="start"&&e.target.value){S.start=e.target.value;save();renderAll();}
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.closest(".log")){S.fields[t.id]=t.value;save();}
+  else if(t.id==="notas"){S.notas=t.value;save();}
+  else if(t.id==="prueba"){S.prueba=t.value;save();}
+  else if(t.id==="kitchen"){S.kitchen=t.value;save();renderCalc();renderSections();}
+});
+document.addEventListener("click",e=>{
+  if(e.target.closest("#now")){S.start=toInput(new Date());$("#start").value=S.start;save();renderAll();return;}
+  const fm=e.target.closest("[data-ferm]");if(fm){S.ferm=+fm.dataset.ferm;save();renderAll();return;}
+  const st=e.target.closest(".stepper button");if(st){const k=st.dataset.k,[lo,hi]=LIMITS[k];S.calc[k]=Math.min(hi,Math.max(lo,S.calc[k]+ +st.dataset.d));save();renderCalc();renderSections();return;}
+  const op=e.target.closest("[data-opt]");if(op){S.calc[op.dataset.opt]=op.dataset.v;save();renderCalc();renderSections();return;}
+  const c=e.target.closest(".chips button");if(c){const rid=c.parentElement.dataset.r;S.rate[rid]=S.rate[rid]===c.dataset.v?undefined:c.dataset.v;c.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",S.rate[rid]===b.dataset.v));save();diag();return;}
+  const tb=e.target.closest(".timer");if(tb){toggleTimer(tb);return;}
+});
+
+let audio;const timers=new Map();
+function timerLabel(id,min){return timers.has(id)?"…":fmt(min*60)+" ▸";}
+function beep(){try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();[0,.35,.7].forEach(d=>{const o=audio.createOscillator(),gn=audio.createGain();o.frequency.value=880;o.connect(gn);gn.connect(audio.destination);gn.gain.setValueAtTime(.2,audio.currentTime+d);gn.gain.exponentialRampToValueAtTime(.001,audio.currentTime+d+.3);o.start(audio.currentTime+d);o.stop(audio.currentTime+d+.3);});}catch(e){}}
+function toggleTimer(b){
+  const key=b.closest(".step").dataset.step;
+  try{audio=audio||new (window.AudioContext||window.webkitAudioContext)();}catch(e){}
+  if(timers.has(key)){clearInterval(timers.get(key).id);timers.delete(key);b.className="timer";b.textContent=fmt(b.dataset.min*60)+" ▸";return;}
+  const end=Date.now()+b.dataset.min*60000;
+  try{navigator.wakeLock&&navigator.wakeLock.request("screen").catch(()=>{});}catch(e){}
+  const tick=()=>{const left=(end-Date.now())/1000;const btn=document.querySelector(`[data-step="${key}"] .timer`);if(!btn)return;
+    if(left<=0){clearInterval(timers.get(key).id);timers.delete(key);btn.className="timer fin";btn.textContent="¡Listo!";beep();return;}
+    btn.className="timer run";btn.textContent=fmt(left)+" ■";};
+  timers.set(key,{id:setInterval(tick,1000)});tick();
+}
+
+function logText(){
+  const c=S.calc,L=[];
+  L.push(`Prueba de masa Nº ${S.prueba} · amasado ${fD(PL.st)}, primera pizza ${fD(PL.bake)} · ${S.ferm} h en frío`);
+  L.push(`Clima: ${PL.room} °C al amasar (${PL.roomSrc}), ${PL.tOut} °C al sacar los bollos (${PL.outSrc}) · puntata ${PL.P} min, atemperado ${PL.A} min`);
+  L.push(`Receta: ${c.n} bollos de ${C.ball} g (pizza de ${c.size} cm, estirada a ${C.raw} cm) · ${C.flour} g harina 00, ${C.water} g agua total (${c.hyd}%; ${C.cubes} cubitos = ${C.iceG} g hielo + ${C.liq} g agua), ${C.salt} g sal, ${String(C.yeast).replace(".",",")} g ${C.yeastName} · heladera ${c.fridge==="frio"?"4 °C":"6–8 °C"}`);
+  SECTIONS.forEach(s=>{if(s.log)s.log.fields.forEach(([id,l])=>L.push(`${l}: ${S.fields[id]||"—"}`));});
+  RATE.forEach(r=>{const o=r.o.find(x=>x[0]===S.rate[r.id]);L.push(`${r.t}: ${o?o[1]:"—"}`);});
+  if(S.notas)L.push("Notas: "+S.notas);
+  const all=SECTIONS.flatMap(s=>s.steps);L.push(`Pasos hechos: ${all.filter(x=>S.checks[x.id]).length} de ${all.length}`);
+  return L.join("\n");
+}
+$("#copy").addEventListener("click",()=>{
+  const txt=logText(),msg=$("#msg"),fb=$("#fallback");
+  const fallback=()=>{fb.hidden=false;fb.value=txt;fb.focus();fb.select();msg.textContent="Seleccionado: copialo y pegámelo en el chat.";};
+  try{navigator.clipboard.writeText(txt).then(()=>{fb.hidden=true;msg.textContent="Copiado. Pegámelo en el chat.";},fallback);}catch(e){fallback();}
+});
+let armed=false;
+$("#reset").addEventListener("click",e=>{
+  if(!armed){armed=true;e.target.textContent="Tocá de nuevo para borrar";setTimeout(()=>{armed=false;e.target.textContent="Nueva prueba";},4000);return;}
+  armed=false;e.target.textContent="Nueva prueba";
+  const n=(parseInt(S.prueba,10)||0)+1;
+  S={prueba:n,checks:{},fields:{},rate:{},notas:"",ferm:S.ferm,start:toInput(nextQuarter()),kitchen:"",calc:S.calc,seed4:S.seed4};
+  timers.forEach(t=>clearInterval(t.id));timers.clear();save();render();$("#msg").textContent=`Lista la prueba Nº ${n}. Poné cuándo empezás a amasar.`;
+});
+render();
+
+/* Clima en vivo: en la web la página consulta Open-Meteo directo, cada vez que se abre. */
+(async()=>{
+  try{
+    const r=await fetch("https://api.open-meteo.com/v1/forecast?latitude=-25.28&longitude=-57.63&hourly=temperature_2m&timezone=America%2FAsuncion&forecast_days=7");
+    if(!r.ok)return;const j=await r.json();const t=j.hourly&&j.hourly.time,v=j.hourly&&j.hourly.temperature_2m;
+    if(!t||!v)return;const hours={};t.forEach((k,i)=>{if(typeof v[i]==="number")hours[k.slice(0,13)]=Math.round(v[i]);});
+    const n=new Date();W={updated:`${DAYS[n.getDay()]} ${n.getDate()}/${n.getMonth()+1} ${fT(n)}`,source:"Open-Meteo",hours};wxLive=true;renderCalc();renderSections();
+  }catch(e){}
+})();
+/* Clima: lee el último pronóstico guardado por la actualización automática (cada 6 h). */
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const db=await window.claude.use("db");if(!db)return;
+    const snap=await db.doc("clima/asuncion").get();
+    if(!snap||!snap.exists)return;
+    const d=snap.data();
+    if(d&&d.hours&&typeof d.hours==="object"){W={updated:String(d.updated||""),source:String(d.source||"pronóstico"),hours:d.hours};wxLive=true;renderCalc();renderSections();}
+  }catch(e){}
+})();
+</script>
+
+</body>
+</html>
