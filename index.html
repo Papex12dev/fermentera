@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Checklist de Fermentera</title>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -13,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F7F0E3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1C1512" media="(prefers-color-scheme: dark)">
+<title>Checklist de Fermentera</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&family=DM+Sans:wght@400;500;700&display=swap">
 <style>
@@ -224,11 +224,17 @@ h2{font-size:24px;font-weight:700}
         <p class="hint" id="h_n"></p></div>
       <div class="field"><span class="lbl">Hidratación</span>
         <div class="stepper"><button type="button" data-k="hyd" data-d="-1" aria-label="Menos agua">−</button><output id="o_hyd"></output><button type="button" data-k="hyd" data-d="1" aria-label="Más agua">+</button></div>
-        <p class="hint">Con Molini Pizzuti (W 250) y el calor de Asunción, 62%. Más agua da más alveolo, pero cuesta estirar.</p></div>
+        <p class="hint" id="h_hyd"></p></div>
       <div class="field"><span class="lbl">Peso de un cubito</span>
         <div class="stepper"><button type="button" data-k="cube" data-d="-5" aria-label="Cubito más liviano">−</button><output id="o_cube"></output><button type="button" data-k="cube" data-d="5" aria-label="Cubito más pesado">+</button></div>
         <p class="hint">Pesá un cubito de tu cubetera una vez. La cantidad de hielo se calcula sola con el clima.</p></div>
     </div>
+    <div class="field"><span class="lbl">Harina</span>
+      <div class="seg" role="group" aria-label="Tipo de harina">
+        <button type="button" data-flour="pizzuti">Molini Pizzuti 0</button>
+        <button type="button" data-flour="ersa">ERSA 000</button>
+      </div>
+      <p class="hint" id="h_flour"></p></div>
     <div class="opts">
       <div class="field"><span class="lbl">Levadura</span>
         <div class="seg" role="group" aria-label="Tipo de levadura">
@@ -268,11 +274,21 @@ h2{font-size:24px;font-weight:700}
    El peso del bollo escala con la superficie: 270 × (diámetro estirado / 33)². */
 const LIMITS={size:[26,40],n:[1,60],hyd:[58,72],cube:[10,50]};
 const KEY="fermentera-checklist-v1";
+/* Harinas: la hidratación de partida y las horas recomendadas cambian con la fuerza de cada una. */
+const FLOURS={
+ pizzuti:{name:"Molini Pizzuti tipo 0",short:"Pizzuti 0",hyd:62,rec:48,max:48,
+  hint:"Harina italiana para pizza, W 250 ± 20 (fuerza media). Aguanta bien 24 y 48 h en frío.",
+  stone:"430–450 °C",hydHint:"Con la Pizzuti y el calor de Asunción, 62%. Más agua da más alveolo, pero cuesta estirar."},
+ ersa:{name:"ERSA tipo 000",short:"ERSA 000",hyd:62,rec:48,max:48,stone:"400–420 °C",
+  hint:"Harina panadera paraguaya con 12,8 g de proteína cada 100 g (la Pizzuti tiene 10 g): es fuerte y aguanta 48 h. Trae ácido ascórbico y alfa amilasa, que hacen que dore más rápido: la piedra va más baja, a 400–420 °C.",
+  hydHint:"Con la ERSA 000, 62%: por la proteína absorbe un poco más de agua. Si se encoge al estirar, dejá los bollos atemperar 30 minutos más."}
+};
+const FL=()=>FLOURS[S.flour]||FLOURS.pizzuti;
 const pad=n=>String(n).padStart(2,"0");
 const toInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const nextQuarter=()=>{const d=new Date();d.setSeconds(0,0);d.setMinutes(Math.ceil((d.getMinutes()+1)/15)*15);return d;};
 
-let S={prueba:2,checks:{},fields:{},rate:{},notas:"",ferm:24,start:"",kitchen:"",calc:{size:35,n:6,hyd:62,yeast:"fresca",fridge:"frio",cube:25}};
+let S={prueba:2,flour:"pizzuti",checks:{},fields:{},rate:{},notas:"",ferm:24,start:"",kitchen:"",calc:{size:35,n:6,hyd:62,yeast:"fresca",fridge:"frio",cube:25}};
 try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S=Object.assign(S,o);S.calc=Object.assign({size:35,n:6,hyd:62,yeast:"fresca",fridge:"frio",cube:25},o.calc||{});}}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 /* Prueba 2: arranca el sábado 7/11 a las 20:00 con 24 h en frío (una sola vez por navegador) */
@@ -281,6 +297,7 @@ if(S.seed4!=="p2"){
   S.start="2026-11-07T20:00";S.ferm=24;S.calc.hyd=62;S.seed4="p2";save();
 }
 if(![24,48,72].includes(S.ferm))S.ferm=48;
+if(!FLOURS[S.flour])S.flour="pizzuti";
 if(!S.start)S.start=toInput(nextQuarter());
 
 /* Pronóstico por hora para Asunción. Se reemplaza por el último que guarda la actualización automática. */
@@ -300,8 +317,8 @@ const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 
 const FERM={
  24:{tag:"Rápida",t:"24 horas",d:"Sabor suave, a pan fresco. Lleva el doble de levadura para llegar a tiempo. Se estira fácil; el borde infla bien, pero con alveolos más chicos y un dorado más parejo. Ideal para amasar la noche anterior."},
- 48:{tag:"El punto justo",t:"48 horas",d:"Más sabor, con notas lácteas y una acidez leve. Queda más liviana y digerible porque la fermentación larga desarma más almidón y gluten. Borde más aireado y con manchas de leopardo. Es la que mejor anda con la Pizzuti (W 250)."},
- 72:{tag:"Máximo sabor",t:"72 horas",d:"Sabor más complejo y ácido, masa muy extensible y liviana. Con una harina de fuerza media se puede pasar: queda floja, se rompe al estirar y dora rápido, con riesgo de quemarse abajo. Pide heladera estable a 4 °C y harina más fuerte (W 280–320)."}
+ 48:{tag:"El punto justo",t:"48 horas",d:"Más sabor, con notas lácteas y una acidez leve. Queda más liviana y digerible porque la fermentación larga desarma más almidón y gluten. Borde más aireado y con manchas de leopardo. Anda bien con la Pizzuti y con la ERSA 000."},
+ 72:{tag:"Máximo sabor",t:"72 horas",d:"Sabor más complejo y ácido, masa muy extensible y liviana. Con una harina de fuerza media se puede pasar: queda floja, se rompe al estirar y dora rápido, con riesgo de quemarse abajo. Pide heladera estable a 4 °C y harina de fuerza (W 280–320) sin mejoradores: con la Pizzuti se debilita y con la ERSA 000, por la alfa amilasa, dora de más."}
 };
 
 /* Plan: todo sale de la hora de inicio, las horas de frío y el clima.
@@ -379,7 +396,7 @@ const ILL={
 const SECTIONS=[
  {id:"prep",title:"Antes de amasar",when:()=>"Antes de las "+fT(PL.st),steps:[
   {id:"p1",t:()=>C.cubes?"Hielo en el freezer":"El agua",d:()=>C.cubes?`${C.cubes} cubitos (unos ${g(C.iceG)}). El resto del agua (${g(C.liq)}) va de la canilla: con ${PL.room} °C en la cocina, el hielo la deja a ~${C.tf} °C.`:waterText()},
-  {id:"p2",t:"Ingredientes pesados",d:()=>`${g(C.flour)} de harina 00, ${g(C.salt)} de sal fina y ${dec(C.yeast)} de ${C.yeastName}.`},
+  {id:"p2",t:"Ingredientes pesados",d:()=>`${g(C.flour)} de harina ${FL().short}, ${g(C.salt)} de sal fina y ${dec(C.yeast)} de ${C.yeastName}.`},
   {id:"p3",t:()=>`${C.n} lugares en cajas o tuppers aceitados, con tapa`,d:"5 cm entre bollos. Una cucharadita de aceite de oliva por caja."},
   {id:"p4",t:"Balanza y termómetro de pinchar a mano",d:()=>C.yeast<1?"La levadura pesa menos de 1 g: disolvé 10 veces esa cantidad en 100 g del agua y usá 10 g de esa mezcla.":""},
   {id:"p5",t:"Heladera medida",d:"Si marca más de 4 °C, elegí 6–8 °C en la calculadora: baja la levadura sola."}
@@ -405,7 +422,7 @@ const SECTIONS=[
   {id:"b1",tm:()=>fT(PL.out),t:"Sacar los bollos de la heladera",d:()=>`${PL.A} minutos antes de la primera pizza, calculado con ${PL.tOut} °C (${PL.outSrc}). Siguen tapados, en el lugar más fresco de la cocina.`,min:()=>PL.A},
   {id:"b2",t:"Preparar los ingredientes",d:()=>`Por pizza: ${g(C.tom)} de tomate pelado triturado a mano con sal y ${g(C.mozz)} de fior di latte escurrido. Para ${C.n}: ${g(C.tom*C.n)} de tomate y ${g(C.mozz*C.n)} de queso.`},
   {id:"b3",tm:()=>fT(PL.oven),t:"Prender el Koda 16 al máximo",d:"25 a 30 minutos.",min:30},
-  {id:"b4",t:"Medir la piedra",d:"Centro de la piedra a 430–450 °C con el infrarrojo."},
+  {id:"b4",t:"Medir la piedra",d:()=>`Centro de la piedra a ${FL().stone} con el infrarrojo${S.flour==="ersa"?": con la ERSA 000 no más, porque dora rápido":""}.`},
   {id:"b5",t:"Controlar los bollos",d:"Relajados e inflados. Al apretarlos, la marca vuelve despacio."},
   {id:"b6",tm:()=>fT(PL.bake),t:()=>`Estirar a ${C.raw} cm`,ill:"estirar",d:()=>`Con sémola y la yema de los dedos, dejando 2 cm de borde sin tocar. Sin palote. Sacudí el exceso de sémola: la que sobra se quema en la piedra. En la pala de 16" (40 cm) tienen que quedar ~${((40.6-C.raw)/2).toFixed(1).replace(".",",")} cm libres por costado.`},
   {id:"b7",t:"Bajar la llama a medio y meter la pizza",d:"Sacudí la pala de costado antes de cargar. Si la pizza no se desliza, levantá el borde y tirá un poco de sémola debajo."},
@@ -438,7 +455,7 @@ function renderPlan(){
   $("#wxsrc").textContent=`Pronóstico por hora de ${W.source}, actualizado ${W.updated}${wxLive?"":" (copia guardada en la página)"}. Para amasar se toma la hora de inicio; para sacar los bollos, 2 h antes de la primera pizza.`;
 }
 function renderFerm(){
-  $("#ferm").innerHTML=[24,48,72].map(h=>`<button type="button" class="fcard" data-ferm="${h}" aria-pressed="${S.ferm===h}"><span class="tag">${FERM[h].tag}</span><h3>${FERM[h].t}</h3><p>${FERM[h].d}</p></button>`).join("");
+  $("#ferm").innerHTML=[24,48,72].map(h=>`<button type="button" class="fcard" data-ferm="${h}" aria-pressed="${S.ferm===h}"><span class="tag">${FERM[h].tag}${h===FL().rec?" · recomendada con "+FL().short:""}</span><h3>${FERM[h].t}</h3><p>${FERM[h].d}</p></button>`).join("");
 }
 function renderCalc(){
   PL=plan();C=calc();const c=S.calc;
@@ -450,7 +467,7 @@ function renderCalc(){
   const ev=Math.round(c.n/0.6);
   $("#h_n").textContent=c.n>=10?`En evento alcanza para unas ${ev} personas (≈0,6 pizza por persona).`:`${c.n} ${c.n===1?"pizza":"pizzas"} de ${c.size} cm.`;
   document.querySelectorAll("[data-opt]").forEach(b=>b.setAttribute("aria-pressed",S.calc[b.dataset.opt]===b.dataset.v));
-  $("#recipe").innerHTML=[[g(C.flour),"harina 00"],[g(C.water),C.cubes?`agua total (${c.hyd}%): ${C.iceG} g hielo + ${C.liq} g agua`:`agua (${c.hyd}%)`],[g(C.salt),"sal fina"],[dec(C.yeast),`${C.yeastName} (${S.ferm} h)`],[`${c.n} × ${C.ball}`,"bollos (g)"]]
+  $("#recipe").innerHTML=[[g(C.flour),`harina ${FL().short}`],[g(C.water),C.cubes?`agua total (${c.hyd}%): ${C.iceG} g hielo + ${C.liq} g agua`:`agua (${c.hyd}%)`],[g(C.salt),"sal fina"],[dec(C.yeast),`${C.yeastName} (${S.ferm} h)`],[`${c.n} × ${C.ball}`,"bollos (g)"]]
     .map(([b,s])=>`<div><b>${b}</b><small>${s}</small></div>`).join("");
   $("#facts").innerHTML=[`Masa total ≈ ${g(C.dough)} + 3% de merma`,`Agua a ~${C.cubes?C.tf:(C.warm?PL.target:PL.tap)} °C`,`Estirar a ${C.raw} cm`,`Por pizza: ${g(C.tom)} de tomate y ${g(C.mozz)} de queso`]
     .map(t=>`<span>${t}</span>`).join("");
@@ -461,8 +478,12 @@ function renderCalc(){
   if(C.flour>2000)al.push(["info",`Son ${g(C.flour)} de harina: amasá en tandas de hasta 1–1,5 kg o usá amasadora.`]);
   if(PL.roomSrc.startsWith("sin"))al.push(["info","No hay pronóstico para esa hora: cargá la temperatura de tu cocina en \"Tu plan\" para afinar el agua y los tiempos."]);
   if(PL.room>=32)al.push(["",`Con ${PL.room} °C la masa se calienta rápido: amasá en el lugar más fresco o con aire acondicionado, y no te pases de los ${PL.P} minutos de puntata.`]);
-  if(S.ferm===72)al.push(["info","72 h es mucho para una harina de W 250: si al estirar se rompe, volvé a 48 h."]);
   if(c.hyd>=69)al.push(["info",`Con ${c.hyd}% de agua la masa es muy húmeda para el calor de Asunción: probá primero con 62–63%.`]);
+  if(S.ferm>FL().max)al.push(["",S.flour==="ersa"?"72 h con ERSA 000: la alfa amilasa genera mucho azúcar y la pizza se quema abajo. 48 h es el tope.":"72 h es mucho para una harina de W 250: si al estirar se rompe, volvé a 48 h."]);
+  if(S.flour==="ersa")al.push(["info","Con ERSA 000 la piedra va a 400–420 °C, no a 450: con la alfa amilasa dora más rápido. Bajá la llama apenas entra la pizza."]);
+  if(S.flour==="ersa"&&c.hyd>64)al.push(["info",`Con ERSA 000, ${c.hyd}% ya es mucha agua: probá 62–63%.`]);
+  $("#h_flour").textContent=FL().hint;$("#h_hyd").textContent=FL().hydHint;
+  document.querySelectorAll("[data-flour]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.flour===S.flour));
   $("#alerts").innerHTML=al.map(([k,t])=>`<p class="alert ${k}">${t}</p>`).join("");
   $("#sub").textContent=`Masa napoletana · ${S.ferm} h en frío · ${c.n} ${c.n===1?"bollo":"bollos"} de ${C.ball} g · pizza de ${c.size} cm en el Koda 16`;
   renderPlan();
@@ -499,7 +520,7 @@ function diag(){
   const r=S.rate,out=[];
   if(r.r1==="rompe")out.push(["warn","Fermentó de más: bajá a menos horas en frío, elegí heladera 6–8 °C en la calculadora o sacá los bollos más tarde."]);
   if(r.r1==="encoge"||r.r3==="palida")out.push(["warn","Le faltó fermentación: dejá los bollos más tiempo afuera o subí las horas en frío."]);
-  if(r.r3==="quemada")out.push(["warn","Se quemó abajo: bajá la llama antes de meterla y medí que la piedra no pase de 450 °C."]);
+  if(r.r3==="quemada")out.push(["warn",`Se quemó abajo: bajá la llama antes de meterla y medí que la piedra no pase de ${FL().stone.split("–")[1]}.`]);
   if(r.r2==="plano"||r.r2==="medio")out.push(["","Borde poco inflado: no aplastes los 2 cm del borde al estirar y revisá que la piedra esté a 430 °C o más."]);
   if(r.r4==="pesada")out.push(["","Pesada: suele ser falta de fermentación o masa muy fría al estirar."]);
   if(r.r5==="chica")out.push(["","Quedó chica: estirá hasta dejar ~3,5 cm libres por costado en la pala de 16\". Si con la hidratación bien medida igual queda chica, subí el tamaño a 36 cm en la calculadora (bollo de ~285 g)."]);
@@ -522,6 +543,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#now")){S.start=toInput(new Date());$("#start").value=S.start;save();renderAll();return;}
   const fm=e.target.closest("[data-ferm]");if(fm){S.ferm=+fm.dataset.ferm;save();renderAll();return;}
   const st=e.target.closest(".stepper button");if(st){const k=st.dataset.k,[lo,hi]=LIMITS[k];S.calc[k]=Math.min(hi,Math.max(lo,S.calc[k]+ +st.dataset.d));save();renderCalc();renderSections();return;}
+  const fl=e.target.closest("[data-flour]");if(fl){S.flour=fl.dataset.flour;S.calc.hyd=FL().hyd;if(S.ferm>FL().max)S.ferm=FL().rec;save();renderAll();return;}
   const op=e.target.closest("[data-opt]");if(op){S.calc[op.dataset.opt]=op.dataset.v;save();renderCalc();renderSections();return;}
   const c=e.target.closest(".chips button");if(c){const rid=c.parentElement.dataset.r;S.rate[rid]=S.rate[rid]===c.dataset.v?undefined:c.dataset.v;c.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",S.rate[rid]===b.dataset.v));save();diag();return;}
   const tb=e.target.closest(".timer");if(tb){toggleTimer(tb);return;}
@@ -546,7 +568,7 @@ function logText(){
   const c=S.calc,L=[];
   L.push(`Prueba de masa Nº ${S.prueba} · amasado ${fD(PL.st)}, primera pizza ${fD(PL.bake)} · ${S.ferm} h en frío`);
   L.push(`Clima: ${PL.room} °C al amasar (${PL.roomSrc}), ${PL.tOut} °C al sacar los bollos (${PL.outSrc}) · puntata ${PL.P} min, atemperado ${PL.A} min`);
-  L.push(`Receta: ${c.n} bollos de ${C.ball} g (pizza de ${c.size} cm, estirada a ${C.raw} cm) · ${C.flour} g harina 00, ${C.water} g agua total (${c.hyd}%; ${C.cubes} cubitos = ${C.iceG} g hielo + ${C.liq} g agua), ${C.salt} g sal, ${String(C.yeast).replace(".",",")} g ${C.yeastName} · heladera ${c.fridge==="frio"?"4 °C":"6–8 °C"}`);
+  L.push(`Receta: ${c.n} bollos de ${C.ball} g (pizza de ${c.size} cm, estirada a ${C.raw} cm) · ${C.flour} g harina ${FL().name}, ${C.water} g agua total (${c.hyd}%; ${C.cubes} cubitos = ${C.iceG} g hielo + ${C.liq} g agua), ${C.salt} g sal, ${String(C.yeast).replace(".",",")} g ${C.yeastName} · heladera ${c.fridge==="frio"?"4 °C":"6–8 °C"}`);
   SECTIONS.forEach(s=>{if(s.log)s.log.fields.forEach(([id,l])=>L.push(`${l}: ${S.fields[id]||"—"}`));});
   RATE.forEach(r=>{const o=r.o.find(x=>x[0]===S.rate[r.id]);L.push(`${r.t}: ${o?o[1]:"—"}`);});
   if(S.notas)L.push("Notas: "+S.notas);
@@ -563,7 +585,7 @@ $("#reset").addEventListener("click",e=>{
   if(!armed){armed=true;e.target.textContent="Tocá de nuevo para borrar";setTimeout(()=>{armed=false;e.target.textContent="Nueva prueba";},4000);return;}
   armed=false;e.target.textContent="Nueva prueba";
   const n=(parseInt(S.prueba,10)||0)+1;
-  S={prueba:n,checks:{},fields:{},rate:{},notas:"",ferm:S.ferm,start:toInput(nextQuarter()),kitchen:"",calc:S.calc,seed4:S.seed4};
+  S={prueba:n,flour:S.flour,checks:{},fields:{},rate:{},notas:"",ferm:S.ferm,start:toInput(nextQuarter()),kitchen:"",calc:S.calc,seed4:S.seed4};
   timers.forEach(t=>clearInterval(t.id));timers.clear();save();render();$("#msg").textContent=`Lista la prueba Nº ${n}. Poné cuándo empezás a amasar.`;
 });
 render();
