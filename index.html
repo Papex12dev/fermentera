@@ -133,6 +133,10 @@ h2{font-size:24px;font-weight:700}
 .chips button[aria-pressed="true"].good{background:var(--soft-basil);border-color:var(--basil)}
 .chips button[aria-pressed="true"].bad{background:var(--soft-red);border-color:var(--red)}
 .diag{display:flex;flex-direction:column;gap:8px}
+.tempbox{grid-column:2/-1;display:flex;flex-direction:column;gap:6px;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:10px}
+.tempbox label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.tempbox input{max-width:140px}
+.tempbox .diag p{font-size:15px}
 .diag p{margin:0;padding:10px 12px;border-radius:8px;border-left:4px solid var(--ember);background:var(--soft-ember)}
 .diag p.ok{border-color:var(--basil);background:var(--soft-basil)}
 .diag p.warn{border-color:var(--red);background:var(--soft-red)}
@@ -338,18 +342,29 @@ function plan(){
   const fcMix=tempAt(st);
   const room=!isNaN(k)?k:(fcMix!=null?fcMix:27);
   const roomSrc=!isNaN(k)?"medida":(fcMix!=null?"pronóstico":"sin pronóstico, estimada");
-  const P=room<=26?60:room<=30?45:30;
-  const fridgeIn=add(st,45+P);
+  const P0=room<=26?60:room<=30?45:30;
   const bake=add(st,S.ferm*60);
   const fcOut=tempAt(add(bake,-120));
   const tOut=fcOut!=null?fcOut:room;
-  const A=tOut<=22?150:tOut<=26?120:tOut<=30?90:60;
+  const A0=tOut<=22?150:tOut<=26?120:tOut<=30?90:60;
+  /* Temperatura final de la masa (meta 23–24 °C): si salió caliente, fermenta más rápido
+     y se acorta la puntata y el atemperado; si salió fría, se alargan. */
+  const dt=parseFloat(String(S.fields.l_masa||"").replace(",","."));
+  let P=P0,A=A0,lvl=null;
+  if(!isNaN(dt)&&dt>5&&dt<40){
+    if(dt<=22){P=P0+15;A=A0+30;lvl="fria";}
+    else if(dt<25){lvl="ok";}
+    else if(dt<27){P=Math.min(P0,30);lvl="tibia";}
+    else if(dt<29){P=15;A=Math.max(45,A0-30);lvl="caliente";}
+    else{P=0;A=Math.max(45,A0-60);lvl="muy";}
+  }
+  const fridgeIn=add(st,45+P);
   const out=add(bake,-A),oven=add(bake,-30);
   /* Fricción: a mano la masa sube ~3 °C; la amasadora espiral la calienta ~9 °C. */
   const F=S.method==="espiral"?9:3;
   const target=clamp(Math.round(69-2*room-F),2,20);
   const tap=clamp(Math.round(room),18,32);
-  return {st,room,roomSrc,F,P,fridgeIn,bake,tOut,outSrc:fcOut!=null?"pronóstico":"estimada",A,out,oven,target,tap};
+  return {st,room,roomSrc,F,P,P0,A0,dt,lvl,fridgeIn,bake,tOut,outSrc:fcOut!=null?"pronóstico":"estimada",A,out,oven,target,tap};
 }
 let PL=plan();
 
@@ -414,12 +429,12 @@ const STEPS_ESP=[
   {id:"e5",t:"La sal",ill:"sal",d:()=>`Sumá los ${g(C.salt)} de sal y seguí 1 minuto en lento.`,min:1},
   {id:"e6",t:"El resto de la harina",ill:"espiral",d:()=>`Agregá lo que queda (${g(C.flour-r5(C.flour*0.9))}) y seguí en lento 2–3 minutos, hasta que no quede harina suelta. Si se junta harina en el fondo o en las paredes, apagá y raspá con la rasqueta: nunca metas la mano con la máquina andando.`,min:3},
   {id:"e7",t:"Amasar en velocidad media",ill:"espiral",d:"Subí a ~160–180 rpm durante 6 a 8 minutos, hasta que la masa se despegue de la batea, quede lisa y se enrosque en el gancho. No uses la velocidad máxima: calienta y rompe la masa.",min:8},
-  {id:"e8",t:"Prueba de la ventana y temperatura",ill:"ventana",d:"Apagá. Estirá un trocito: tiene que quedar fino y translúcido sin romperse; si no, 1–2 minutos más en media. Pinchá la masa con el termómetro: la meta es 23–24 °C. Si pasa de 25 °C, la próxima vez más hielo o menos minutos en media. Anotala abajo."},
+  {id:"e8",t:"Prueba de la ventana y temperatura",ill:"ventana",d:"Apagá. Estirá un trocito: tiene que quedar fino y translúcido sin romperse; si no, 1–2 minutos más en media. Pinchá la masa con el termómetro: la meta es 23–24 °C. Anotala acá abajo: Fermentera ajusta la puntata y los horarios.",extra:"temp"},
   {id:"e9",t:"Reposo de 15 minutos",ill:"reposo",d:"Tapá la batea con un repasador húmedo. Con la amasadora no hace falta volver a amasar después.",min:15},
-  {id:"e10",t:()=>`Puntata: ${PL.P} minutos tapada`,ill:"reposo",d:()=>`Masa entera en la batea o en un bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P} minutos: con más calor fermenta más rápido.`,min:()=>PL.P},
+  {id:"e10",t:()=>PL.P?`Puntata: ${PL.P} minutos tapada`:"Sin puntata: bollá enseguida",ill:"reposo",d:()=>`Masa entera en la batea o en un bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P0} minutos: con más calor fermenta más rápido.${PL.P!==PL.P0?` La masa salió a ${PL.dt} °C, así que la puntata queda en ${PL.P} minutos.`:""}`,min:()=>PL.P},
   {id:"e11",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Apagá la máquina, volcá la masa a la mesada y cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.`},
   {id:"e12",t:"A las cajas",ill:"cajas",d:"Con el cierre hacia abajo, 5 cm entre bollos y la caja bien tapada para que no se seque la piel."},
-  {id:"e13",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.`}
+  {id:"e13",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.${PL.lvl==="caliente"||PL.lvl==="muy"?" Dejá las cajas destapadas los primeros 30 minutos para que se enfríen más rápido; después tapalas.":""}`}
 ];
 const SECTIONS=[
  {id:"prep",title:"Antes de amasar",when:()=>"Antes de las "+fT(PL.st),steps:[
@@ -440,11 +455,11 @@ const SECTIONS=[
   {id:"m8",t:"Volcar a la mesada y amasar",ill:"amasar",d:()=>C.flour>2000?"Con más de 2 kg de harina, dividí la masa en dos y amasá cada mitad. Técnica: empujá con el talón de la mano hacia adelante, plegá la masa hacia vos, girala un cuarto de vuelta y repetí.":"Mesada limpia y sin harina abajo. Empujá la masa con el talón de la mano hacia adelante, plegala hacia vos, girala un cuarto de vuelta y repetí, con ritmo. Al principio se pega: no agregues harina, raspá con la rasqueta. Si se pega mucho, tapala 10 minutos y seguí. En 10 a 12 minutos queda lisa.",min:12},
   {id:"m9",t:"Prueba de la ventana",ill:"ventana",d:"Cortá un trocito y estiralo despacio entre los dedos. Si se pone fino y translúcido sin romperse, está lista. Si se rompe enseguida, amasá 2–3 minutos más."},
   {id:"m10",t:"Reposo de 15 minutos y 2 minutos más de amasado",ill:"reposo",d:"Tapala con el bowl dado vuelta o un repasador húmedo. Después de amasar de nuevo queda sedosa y brillante.",min:15},
-  {id:"m11",t:"Medir la temperatura de la masa",d:"Pinchá el centro con el termómetro. La meta es 23–24 °C. Anotala abajo."},
-  {id:"m12",t:()=>`Puntata: ${PL.P} minutos tapada`,ill:"reposo",d:()=>`Masa entera en el bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P} minutos: con más calor fermenta más rápido.`,min:()=>PL.P},
+  {id:"m11",t:"Medir la temperatura de la masa",d:"Pinchá el centro con el termómetro. La meta es 23–24 °C.",extra:"temp"},
+  {id:"m12",t:()=>PL.P?`Puntata: ${PL.P} minutos tapada`:"Sin puntata: bollá enseguida",ill:"reposo",d:()=>`Masa entera en el bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P0} minutos: con más calor fermenta más rápido.${PL.P!==PL.P0?` La masa salió a ${PL.dt} °C, así que la puntata queda en ${PL.P} minutos.`:""}`,min:()=>PL.P},
   {id:"m13",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.`},
   {id:"m14",t:"A las cajas",ill:"cajas",d:"Con el cierre hacia abajo, 5 cm entre bollos y la caja bien tapada para que no se seque la piel."},
-  {id:"m15",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.`}
+  {id:"m15",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.${PL.lvl==="caliente"||PL.lvl==="muy"?" Dejá las cajas destapadas los primeros 30 minutos para que se enfríen más rápido; después tapalas.":""}`}
  ],log:{title:"Registro del amasado",fields:[["l_ini","Hora de inicio"],["l_amb","Temp. ambiente (°C)"],["l_agua","Temp. agua (°C)"],["l_masa","Temp. masa final (°C)"],["l_hel","Temp. heladera (°C)"],["l_hora","Hora a la heladera"]]}},
  {id:"d3",title:"Horneado",when:()=>fD(PL.out)+" a "+fT(PL.bake),steps:[
   {id:"b1",tm:()=>fT(PL.out),t:"Sacar los bollos de la heladera",d:()=>`${PL.A} minutos antes de la primera pizza, calculado con ${PL.tOut} °C (${PL.outSrc}). Siguen tapados, en el lugar más fresco de la cocina.`,min:()=>PL.A},
@@ -522,6 +537,22 @@ function renderCalc(){
   renderPlan();
 }
 
+function tempAdvice(){
+  const dt=PL.dt,lv=PL.lvl;
+  if(!lv)return `<p class="ok">Anotá la temperatura y Fermentera ajusta la puntata y los horarios. Meta: 23–24 °C.</p>`;
+  const d=Math.round(Math.abs(dt-24)*3);
+  const extra=Math.max(1,Math.round(C.water*d/(PL.tap+80)/S.calc.cube));
+  const next=dt>=25?`<p>Para la próxima: agua unos ${d} °C más fría (alrededor de ${extra} ${extra===1?"cubito":"cubitos"} más), la harina un rato en la heladera antes${S.method==="espiral"?" y 5–6 minutos en velocidad media en vez de 8":""}.</p>`:(lv==="fria"?`<p>Para la próxima: agua unos ${d} °C más tibia (menos hielo).</p>`:"");
+  const noIce=" No le agregues hielo ni agua fría a la masa ya hecha: lo que se ajusta es el tiempo.";
+  const msg={
+    ok:["ok",`${dt} °C: perfecto. Seguí con el plan: puntata de ${PL.P} minutos.`],
+    fria:["",`${dt} °C: quedó fría y va a fermentar más lento. La puntata pasa a ${PL.P} minutos y los bollos salen de la heladera 30 minutos antes: ${fD(PL.out)}.`],
+    tibia:["",`${dt} °C: un poco caliente. Puntata de ${PL.P} minutos como máximo y bollos a la heladera apenas los armes.`+noIce],
+    caliente:["warn",`${dt} °C: caliente, fermenta bastante más rápido. Puntata de 15 minutos como máximo, bollá enseguida y a la heladera con las cajas destapadas los primeros 30 minutos. Los bollos salen 30 minutos más tarde: ${fD(PL.out)}.`+noIce],
+    muy:["warn",`${dt} °C: muy caliente. Sin puntata: bollá ya y a la heladera, con las cajas destapadas los primeros 30 minutos. Los bollos salen 1 hora más tarde: ${fD(PL.out)}.`+noIce]
+  }[lv];
+  return `<p class="${msg[0]}">${msg[1]}</p>${next}`;
+}
 function renderSections(){
   const host=$("#sections");host.innerHTML="";
   SECTIONS.forEach(sec=>{
@@ -531,7 +562,7 @@ function renderSections(){
       const on=!!S.checks[st.id],d=val(st.d),mn=val(st.min);
       h+=`<li class="step${on?" done":""}" data-step="${st.id}"><input type="checkbox" id="c_${st.id}" ${on?"checked":""}>
       <label for="c_${st.id}"><span class="t">${st.tm?`<span class="tm">${val(st.tm)}</span>`:""}${esc(val(st.t))}</span>${d?`<span class="d">${esc(d)}</span>`:""}${st.ill?`<span class="ill" aria-hidden="true">${ILL[st.ill]()}</span>`:""}</label>
-      ${mn?`<button type="button" class="timer" data-min="${mn}" aria-label="Temporizador de ${mn} minutos">${timerLabel(st.id,mn)}</button>`:"<span></span>"}</li>`;
+      ${mn?`<button type="button" class="timer" data-min="${mn}" aria-label="Temporizador de ${mn} minutos">${timerLabel(st.id,mn)}</button>`:"<span></span>"}${st.extra==="temp"?`<div class="tempbox"><label for="tmasa">Temperatura final de la masa (°C)</label><input id="tmasa" type="number" inputmode="decimal" step="0.5" min="10" max="40" placeholder="Ej.: 24" value="${esc(S.fields.l_masa||"")}"><div class="diag" id="tadvice">${tempAdvice()}</div></div>`:""}</li>`;
     });
     h+="</ul>";
     if(sec.log){h+=`<div class="log"><div class="lt">${sec.log.title}</div>`+sec.log.fields.map(([id,l])=>`<div class="field"><label for="${id}">${l}</label><input type="text" id="${id}" inputmode="decimal" value="${esc(S.fields[id]||"")}"></div>`).join("")+"</div>";}
@@ -563,13 +594,15 @@ function diag(){
 
 document.addEventListener("change",e=>{
   if(e.target.matches('.step input[type=checkbox]')){const id=e.target.id.slice(2);S.checks[id]=e.target.checked;e.target.closest(".step").classList.toggle("done",e.target.checked);progress();save();}
+  else if(e.target.id==="tmasa"||e.target.id==="l_masa"){renderSections();progress();}
   else if(e.target.id==="start"&&e.target.value){S.start=e.target.value;save();renderAll();}
 });
 document.addEventListener("input",e=>{
   const t=e.target;
-  if(t.closest(".log")){S.fields[t.id]=t.value;save();}
+  if(t.closest(".log")&&t.id!=="l_masa"){S.fields[t.id]=t.value;save();}
   else if(t.id==="notas"){S.notas=t.value;save();}
   else if(t.id==="prueba"){S.prueba=t.value;save();}
+  else if(t.id==="tmasa"||t.id==="l_masa"){S.fields.l_masa=t.value;save();renderCalc();const a=document.getElementById("tadvice");if(a)a.innerHTML=tempAdvice();}
   else if(t.id==="kitchen"){S.kitchen=t.value;save();renderCalc();renderSections();}
 });
 document.addEventListener("click",e=>{
