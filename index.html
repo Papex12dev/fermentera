@@ -499,6 +499,12 @@ function renderPlan(){
 function renderFerm(){
   $("#ferm").innerHTML=[24,48,72].map(h=>`<button type="button" class="fcard" data-ferm="${h}" aria-pressed="${S.ferm===h}"><span class="tag">${FERM[h].tag}${h===FL().rec?" · recomendada con "+FL().short:""}</span><h3>${FERM[h].t}</h3><p>${FERM[h].d}</p></button>`).join("");
 }
+/* Capacidad de la Gastrobras GAE-10 (etiqueta): 4 kg de harina por lote, unos 7 kg de masa.
+   Manda el límite que se alcance primero. */
+function maxBalls(){
+  const c=S.calc,fpb=C.flour/c.n;
+  return Math.max(1,Math.min(Math.floor(4000/fpb),Math.floor(7000/(C.ball*1.03))));
+}
 function renderCalc(){
   PL=plan();C=calc();const c=S.calc;
   $("#o_size").innerHTML=`${c.size}<small>cm</small>`;
@@ -507,7 +513,7 @@ function renderCalc(){
   $("#o_cube").innerHTML=`${c.cube}<small>g c/u</small>`;
   $("#h_size").textContent=`Bollo de ${g(C.ball)}, estirado a ${C.raw} cm.`;
   const ev=Math.round(c.n/0.6);
-  $("#h_n").textContent=c.n>=10?`En evento alcanza para unas ${ev} personas (≈0,6 pizza por persona).`:`${c.n} ${c.n===1?"pizza":"pizzas"} de ${c.size} cm.`;
+  $("#h_n").textContent=(c.n>=10?`En evento alcanza para unas ${ev} personas (≈0,6 pizza por persona).`:`${c.n} ${c.n===1?"pizza":"pizzas"} de ${c.size} cm.`)+(S.method==="espiral"?` Máximo por lote en la GAE-10: ${maxBalls()} bollos.`:"");
   document.querySelectorAll("[data-opt]").forEach(b=>b.setAttribute("aria-pressed",S.calc[b.dataset.opt]===b.dataset.v));
   $("#recipe").innerHTML=[[g(C.flour),`harina ${FL().short}`],[g(C.water),C.cubes?`agua total (${c.hyd}%): ${C.iceG} g hielo + ${C.liq} g agua`:`agua (${c.hyd}%)`],[g(C.salt),"sal fina"],[dec(C.yeast),`${C.yeastName} (${S.ferm} h)`],[`${c.n} × ${C.ball}`,"bollos (g)"]]
     .map(([b,s])=>`<div><b>${b}</b><small>${s}</small></div>`).join("");
@@ -518,7 +524,9 @@ function renderCalc(){
   else if(c.size>=36)al.push(["info",`${c.size} cm entra en el Koda 16, pero el estándar del plan es 35 cm (costos y pizzas por evento están calculados así).`]);
   if(c.size<35)al.push(["info",`El plan no hace pizzas chicas: el estándar es 35 cm.`]);
   if(S.method==="espiral"){
-    if(C.flour>4000)al.push(["",`La GAE-10 amasa hasta 4 kg de harina y son ${g(C.flour)}: hacelo en ${Math.ceil(C.flour/4000)} tandas.`]);
+    const mx=maxBalls();
+    if(c.n>mx){const k=Math.ceil(c.n/mx);al.push(["",`Pasaste el máximo de la GAE-10: entran hasta ${mx} bollos de ${C.ball} g por lote (4 kg de harina, unos 7 kg de masa). Para ${c.n} bollos hacé ${k} lotes de ${Math.ceil(c.n/k)} bollos como máximo; cada lote lleva unos ${g(r5(C.flour/k))} de harina y ${g(r5(C.water/k))} de agua.`]);}
+    else if(c.n>=Math.floor(mx*0.85))al.push(["info",`Estás cerca del máximo de la GAE-10 (${mx} bollos por lote). No pases de velocidad media y fijate que el motor no se esfuerce.`]);
     else if(C.flour<1000)al.push(["info",`Con ${g(C.flour)} de harina el gancho casi no agarra la masa: conviene 1 kg o más (unos 6 bollos).`]);
   }else if(C.flour>2000)al.push(["info",`Son ${g(C.flour)} de harina: amasá en tandas de hasta 1–1,5 kg o usá la amasadora.`]);
   if(PL.roomSrc.startsWith("sin"))al.push(["info","No hay pronóstico para esa hora: cargá la temperatura de tu cocina en \"Tu plan\" para afinar el agua y los tiempos."]);
