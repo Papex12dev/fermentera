@@ -231,7 +231,10 @@ h2{font-size:24px;font-weight:700}
         <p class="hint" id="h_hyd"></p></div>
       <div class="field"><span class="lbl">Peso de un cubito</span>
         <div class="stepper"><button type="button" data-k="cube" data-d="-5" aria-label="Cubito más liviano">−</button><output id="o_cube"></output><button type="button" data-k="cube" data-d="5" aria-label="Cubito más pesado">+</button></div>
-        <p class="hint">Pesá un cubito de tu cubetera una vez. La cantidad de hielo se calcula sola con el clima.</p></div>
+        <p class="hint">Pesá un cubito de tu cubetera una vez. La cantidad de hielo se calcula sola.</p></div>
+      <div class="field"><label for="waterT">Agua de la expendedora (°C)</label>
+        <input id="waterT" type="number" inputmode="decimal" min="1" max="35" step="0.5" placeholder="Ej.: 8">
+        <p class="hint" id="h_waterT"></p></div>
     </div>
     <div class="field"><span class="lbl">Amasado</span>
       <div class="seg" role="group" aria-label="Cómo amasás">
@@ -363,8 +366,11 @@ function plan(){
   /* Fricción: a mano la masa sube ~3 °C; la amasadora espiral la calienta ~9 °C. */
   const F=S.method==="espiral"?9:3;
   const target=clamp(Math.round(69-2*room-F),2,20);
-  const tap=clamp(Math.round(room),18,32);
-  return {st,room,roomSrc,F,P,P0,A0,dt,lvl,fridgeIn,bake,tOut,outSrc:fcOut!=null?"pronóstico":"estimada",A,out,oven,target,tap};
+  /* Agua de partida: la de la expendedora si está medida; si no, canilla a temperatura ambiente. */
+  const wm=parseFloat(String(S.waterT||"").replace(",","."));
+  const disp=!isNaN(wm)&&wm>0&&wm<40;
+  const tap=disp?Math.round(wm*2)/2:clamp(Math.round(room),18,32);
+  return {st,room,roomSrc,disp,F,P,P0,A0,dt,lvl,fridgeIn,bake,tOut,outSrc:fcOut!=null?"pronóstico":"estimada",A,out,oven,target,tap};
 }
 let PL=plan();
 
@@ -392,7 +398,8 @@ function calc(){
     tom:r5(80*k),mozz:r5(120*k),cubes,iceG,liq,tf,warm:PL.target>PL.tap+1};
 }
 let C=calc();
-const waterText=()=>C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) + ${g(C.liq)} de agua de la canilla = ${g(C.water)}. Queda a ~${C.tf} °C.`:(C.warm?`${g(C.water)} de agua templada a ~${PL.target} °C (canilla con un chorrito de agua caliente). Hoy no hace falta hielo.`:`${g(C.water)} de agua de la canilla, a ~${PL.tap} °C. Hoy no hace falta hielo.`);
+const wsrc=()=>PL.disp?"agua de la expendedora":"agua de la canilla";
+const waterText=()=>C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) + ${g(C.liq)} de ${wsrc()} = ${g(C.water)}. Queda a ~${C.tf} °C.`:(C.warm?`${g(C.water)} de agua templada a ~${PL.target} °C (${PL.disp?"mezclá agua de la expendedora con agua de la canilla hasta que el termómetro lo marque":"canilla con un chorrito de agua caliente"}). Hoy no hace falta hielo.`:`${g(C.water)} de ${wsrc()}, a ~${PL.tap} °C. Hoy no hace falta hielo.`);
 
 /* Ilustraciones propias en SVG, coloreadas con los tokens del tema */
 const BP="M18 46H142Q138 94 80 94Q22 94 18 46Z";
@@ -423,7 +430,7 @@ const ILL={
 /* Amasado con la amasadora espiral Gastrobras GAE-10 (hasta 4 kg de harina, 0–240 rpm). */
 const STEPS_ESP=[
   {id:"e1",tm:()=>fT(PL.st),t:"Pesar con la tara",ill:"pesar",d:()=>`Con la máquina apagada. Pesá la harina aparte en otro recipiente: ${g(C.flour)}. El resto lo pesás directo en la batea, tarando entre ingrediente e ingrediente.`},
-  {id:"e2",t:()=>C.cubes?"El agua con hielo en la batea":"El agua en la batea",ill:"agua",d:()=>C.cubes?`Batea sobre la balanza, o pesá aparte y volcá. ${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) + agua de la canilla hasta ${g(C.water)} en total. La amasadora calienta la masa más que las manos, por eso el agua va más fría: revolvé hasta que se derrita el hielo.`:`${waterText()} Va primero el líquido y después la harina.`},
+  {id:"e2",t:()=>C.cubes?"El agua con hielo en la batea":"El agua en la batea",ill:"agua",d:()=>C.cubes?`Batea sobre la balanza, o pesá aparte y volcá. ${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) + ${wsrc()} hasta ${g(C.water)} en total. La amasadora calienta la masa más que las manos, por eso el agua va más fría: revolvé hasta que se derrita el hielo.`:`${waterText()} Va primero el líquido y después la harina.`},
   {id:"e3",t:"Disolver la levadura",ill:"levadura",d:()=>C.yeast<1?"Volcá la mezcla de levadura que preparaste (10 g) en el agua. Prendé en lento (dial en ~60–80 rpm) 1 minuto.":`${S.calc.yeast==="seca"?"Espolvoreá":"Desmenuzá"} los ${dec(C.yeast)} de ${C.yeastName} en el agua. Prendé en lento (dial en ~60–80 rpm) 1 minuto.`,min:1},
   {id:"e4",t:"La harina, de a poco y en lento",ill:"espiral",d:()=>`Con la máquina en lento (~80–100 rpm), agregá unos ${g(r5(C.flour*0.9))} de harina de a puñados, en 2–3 minutos. Queda una papilla espesa.`,min:3},
   {id:"e5",t:"La sal",ill:"sal",d:()=>`Sumá los ${g(C.salt)} de sal y seguí 1 minuto en lento.`,min:1},
@@ -437,7 +444,7 @@ const STEPS_ESP=[
 ];
 const SECTIONS=[
  {id:"prep",title:"Antes de amasar",when:()=>"Antes de las "+fT(PL.st),steps:[
-  {id:"p1",t:()=>C.cubes?"Hielo en el freezer":"El agua",d:()=>C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (unos ${g(C.iceG)}). El resto del agua (${g(C.liq)}) va de la canilla: con ${PL.room} °C en la cocina, el hielo la deja a ~${C.tf} °C.`:waterText()},
+  {id:"p1",t:()=>C.cubes?"Hielo en el freezer":"El agua",d:()=>C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (unos ${g(C.iceG)}). El resto (${g(C.liq)}) es ${wsrc()}${PL.disp?`, que sale a ${PL.tap} °C`:`, con ${PL.room} °C en la cocina`}: con el hielo queda a ~${C.tf} °C.`:waterText()},
   {id:"p2",t:"Ingredientes pesados",d:()=>`${g(C.flour)} de harina ${FL().short}, ${g(C.salt)} de sal fina y ${dec(C.yeast)} de ${C.yeastName}.`},
   {id:"p3",t:()=>`${C.n} lugares en cajas o tuppers aceitados, con tapa`,d:"5 cm entre bollos. Una cucharadita de aceite de oliva por caja."},
   {id:"p4",t:"Balanza y termómetro de pinchar a mano",d:()=>C.yeast<1?"La levadura pesa menos de 1 g: disolvé 10 veces esa cantidad en 100 g del agua y usá 10 g de esa mezcla.":""},
@@ -445,7 +452,7 @@ const SECTIONS=[
  ]},
  {id:"d1",get title(){return S.method==="espiral"?"Amasado en la amasadora":"Amasado a mano";},when:()=>fD(PL.st),get steps(){return S.method==="espiral"?STEPS_ESP:this.mano;},mano:[
   {id:"m1",tm:()=>fT(PL.st),t:"Pesar con la tara",ill:"pesar",d:()=>`Poné el bowl vacío en la balanza y tocá tara para dejarla en 0. Pesá cada ingrediente así, uno por vez, y volvé a tarar entre uno y otro. La harina pesala aparte en otro recipiente: ${g(C.flour)}.`},
-  {id:"m2",t:()=>C.cubes?"El agua con hielo, primero":"El agua primero",ill:"agua",d:()=>C.cubes?`Bowl grande sobre la balanza y tara. Poné los ${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) y completá con agua de la canilla hasta llegar a ${g(C.water)} en total. El hielo cuenta como agua: siempre va pesado dentro del total, nunca por fuera. Revolvé 1–2 minutos hasta que se derrita.`:`${waterText()} Siempre va primero el líquido y después la harina: así no quedan grumos secos en el fondo.`},
+  {id:"m2",t:()=>C.cubes?"El agua con hielo, primero":"El agua primero",ill:"agua",d:()=>C.cubes?`Bowl grande sobre la balanza y tara. Poné los ${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) y completá con ${wsrc()} hasta llegar a ${g(C.water)} en total. El hielo cuenta como agua: siempre va pesado dentro del total, nunca por fuera. Revolvé 1–2 minutos hasta que se derrita.`:`${waterText()} Siempre va primero el líquido y después la harina: así no quedan grumos secos en el fondo.`},
   {id:"m3",t:"Disolver la levadura",ill:"levadura",d:()=>C.yeast<1?"Volcá la mezcla de levadura que preparaste (10 g) en el agua del bowl y revolvé 1 minuto.":(S.calc.yeast==="seca"?`Espolvoreá los ${dec(C.yeast)} de levadura seca sobre el agua y revolvé 1 minuto con la mano.`:`Desmenuzá los ${dec(C.yeast)} de levadura fresca con los dedos sobre el agua y revolvé 1 minuto, hasta que no queden pedacitos. El agua queda apenas turbia.`)},
   {id:"m4",t:"Primer tercio de harina: la papilla",ill:"harina1",d:()=>`Agregá ${g(C.t1)} de harina en lluvia, de a puñados, mientras revolvés en círculos con la mano abierta o una cuchara de madera. Seguí hasta tener una papilla lisa, como una crema espesa, sin grumos.`,min:2},
   {id:"m5",t:"La sal",ill:"sal",d:()=>`Espolvoreá los ${g(C.salt)} de sal sobre la papilla y mezclá 1 minuto hasta que se disuelva. Va recién ahora: si toca la levadura directo, la frena.`},
@@ -491,7 +498,7 @@ function renderPlan(){
   $("#wxrow").innerHTML=[
     ["Al amasar",`${PL.room} °C`,PL.roomSrc],
     ["Al sacar los bollos",`${PL.tOut} °C`,PL.outSrc],
-    ["Agua",C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"}`:(C.warm?`~${PL.target} °C`:"Sin hielo"),C.cubes?`agua a ~${C.tf} °C`:"de la canilla"],
+    ["Agua",C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"}`:(C.warm?`~${PL.target} °C`:"Sin hielo"),C.cubes?`agua a ~${C.tf} °C`:(PL.disp?"de la expendedora":"de la canilla")],
     ["Puntata y atemperado",`${PL.P} + ${PL.A} min`,"según el calor"]
   ].map(([k,v,s])=>`<div><span class="k">${k}</span><span class="v">${v} <small>${s}</small></span></div>`).join("");
   $("#wxsrc").textContent=`Pronóstico por hora de ${W.source}, actualizado ${W.updated}${wxLive?"":" (copia guardada en la página)"}. Para amasar se toma la hora de inicio; para sacar los bollos, 2 h antes de la primera pizza.`;
@@ -535,6 +542,7 @@ function renderCalc(){
   if(S.ferm>FL().max)al.push(["",S.flour==="ersa"?"72 h con ERSA 000: la alfa amilasa genera mucho azúcar y la pizza se quema abajo. 48 h es el tope.":"72 h es mucho para una harina de W 250: si al estirar se rompe, volvé a 48 h."]);
   if(S.flour==="ersa")al.push(["info","Con ERSA 000 la piedra va a 400–420 °C, no a 450: con la alfa amilasa dora más rápido. Bajá la llama apenas entra la pizza."]);
   if(S.flour==="ersa"&&c.hyd>64)al.push(["info",`Con ERSA 000, ${c.hyd}% ya es mucha agua: probá 62–63%.`]);
+  $("#h_waterT").textContent=PL.disp?`Calculado con agua a ${PL.tap} °C: ${C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} para llegar a ~${PL.target} °C.`:(C.warm?`está más fría de lo necesario: templala a ~${PL.target} °C.`:`no hace falta hielo, la meta es ~${PL.target} °C.`)}`:"Medila con el termómetro y anotala: el hielo se calcula con esa temperatura. Vacío, se usa agua de canilla a temperatura ambiente.";
   $("#h_method").textContent=S.method==="espiral"?`Gastrobras GAE-10: hasta 4 kg de harina por tanda (unos ${Math.floor(4000/(C.flour/c.n))} bollos de ${C.ball} g). Calienta la masa unos 9 °C, así que pide agua más fría.`:"Hasta 1–1,5 kg de harina por tanda. A mano la masa se calienta unos 3 °C.";
   document.querySelectorAll("[data-method]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.method===S.method));
   $("#h_flour").textContent=FL().hint;$("#h_hyd").textContent=FL().hydHint;
@@ -580,7 +588,7 @@ function renderAll(){renderCalc();renderFerm();renderSections();}
 function render(){
   renderAll();
   $("#rate").innerHTML=RATE.map(r=>`<div class="rrow"><span class="lbl">${r.t}</span><div class="chips" data-r="${r.id}">`+r.o.map(([v,l,c])=>`<button type="button" class="${c}" data-v="${v}" aria-pressed="${S.rate[r.id]===v}">${l}</button>`).join("")+"</div></div>").join("");
-  $("#prueba").value=S.prueba;$("#start").value=S.start;$("#kitchen").value=S.kitchen||"";$("#notas").value=S.notas||"";
+  $("#prueba").value=S.prueba;$("#start").value=S.start;$("#kitchen").value=S.kitchen||"";$("#waterT").value=S.waterT||"";$("#notas").value=S.notas||"";
   progress();diag();
 }
 function progress(){
@@ -602,6 +610,7 @@ function diag(){
 document.addEventListener("change",e=>{
   if(e.target.matches('.step input[type=checkbox]')){const id=e.target.id.slice(2);S.checks[id]=e.target.checked;e.target.closest(".step").classList.toggle("done",e.target.checked);progress();save();}
   else if(e.target.id==="tmasa"||e.target.id==="l_masa"){renderSections();progress();}
+  else if(e.target.id==="waterT"){renderSections();progress();}
   else if(e.target.id==="start"&&e.target.value){S.start=e.target.value;save();renderAll();}
 });
 document.addEventListener("input",e=>{
@@ -610,6 +619,7 @@ document.addEventListener("input",e=>{
   else if(t.id==="notas"){S.notas=t.value;save();}
   else if(t.id==="prueba"){S.prueba=t.value;save();}
   else if(t.id==="tmasa"||t.id==="l_masa"){S.fields.l_masa=t.value;save();renderCalc();const a=document.getElementById("tadvice");if(a)a.innerHTML=tempAdvice();}
+  else if(t.id==="waterT"){S.waterT=t.value;save();renderCalc();}
   else if(t.id==="kitchen"){S.kitchen=t.value;save();renderCalc();renderSections();}
 });
 document.addEventListener("click",e=>{
@@ -659,7 +669,7 @@ $("#reset").addEventListener("click",e=>{
   if(!armed){armed=true;e.target.textContent="Tocá de nuevo para borrar";setTimeout(()=>{armed=false;e.target.textContent="Nueva prueba";},4000);return;}
   armed=false;e.target.textContent="Nueva prueba";
   const n=(parseInt(S.prueba,10)||0)+1;
-  S={prueba:n,flour:S.flour,method:S.method,seed5:S.seed5,checks:{},fields:{},rate:{},notas:"",ferm:S.ferm,start:toInput(nextQuarter()),kitchen:"",calc:S.calc,seed4:S.seed4};
+  S={prueba:n,flour:S.flour,method:S.method,seed5:S.seed5,checks:{},fields:{},rate:{},notas:"",ferm:S.ferm,start:toInput(nextQuarter()),kitchen:"",waterT:S.waterT||"",calc:S.calc,seed4:S.seed4};
   timers.forEach(t=>clearInterval(t.id));timers.clear();save();render();$("#msg").textContent=`Lista la prueba Nº ${n}. Poné cuándo empezás a amasar.`;
 });
 render();
