@@ -292,9 +292,9 @@ const FLOURS={
  pizzuti:{name:"Molini Pizzuti tipo 0",short:"Pizzuti 0",hyd:62,rec:48,max:48,
   hint:"Harina italiana para pizza, W 250 ± 20 (fuerza media). Aguanta bien 24 y 48 h en frío.",
   stone:"430–450 °C",hydHint:"Con la Pizzuti y el calor de Asunción, 62%. Más agua da más alveolo, pero cuesta estirar."},
- ersa:{name:"ERSA tipo 000",short:"ERSA 000",hyd:62,rec:48,max:48,stone:"400–420 °C",
-  hint:"Harina panadera paraguaya con 12,8 g de proteína cada 100 g (la Pizzuti tiene 10 g): es fuerte y aguanta 48 h. Trae ácido ascórbico y alfa amilasa, que hacen que dore más rápido: la piedra va más baja, a 400–420 °C.",
-  hydHint:"Con la ERSA 000, 62%: por la proteína absorbe un poco más de agua. Si se encoge al estirar, dejá los bollos atemperar 30 minutos más."}
+ ersa:{name:"ERSA tipo 000",short:"ERSA 000",hyd:64,rec:48,max:48,stone:"400–420 °C",
+  hint:"Harina panadera paraguaya con 12,8 g de proteína cada 100 g (la Pizzuti tiene 10 g): es fuerte y aguanta 48 h. Trae ácido ascórbico, que vuelve la masa elástica, y alfa amilasa, que la hace dorar más rápido. Por eso con la ERSA: 64% de agua, autólisis, amasado corto, 48 h en frío, bollos sin apretar de más, 30 minutos más de atemperado y piedra a 400–420 °C.",
+  hydHint:"Con la ERSA 000, 64%: por la proteína absorbe más agua y así la masa queda más extensible. Arriba de 66% se vuelve difícil de manejar."}
 };
 const FL=()=>FLOURS[S.flour]||FLOURS.pizzuti;
 const pad=n=>String(n).padStart(2,"0");
@@ -313,6 +313,8 @@ if(![24,48,72].includes(S.ferm))S.ferm=48;
 if(!FLOURS[S.flour])S.flour="pizzuti";
 /* Llegó la amasadora espiral Gastrobras GAE-10: pasa a ser la opción por defecto (una sola vez por navegador) */
 if(S.seed5!=="gae10"){S.method="espiral";S.seed5="gae10";save();}
+/* ERSA: pasa a 64% de agua tras la prueba en que la masa volvía como elástico (una sola vez) */
+if(S.seed6!=="ersa64"){if(S.flour==="ersa"&&S.calc.hyd<64)S.calc.hyd=64;S.seed6="ersa64";save();}
 if(!["mano","espiral"].includes(S.method))S.method="mano";
 if(!S.start)S.start=toInput(nextQuarter());
 
@@ -349,7 +351,7 @@ function plan(){
   const bake=add(st,S.ferm*60);
   const fcOut=tempAt(add(bake,-120));
   const tOut=fcOut!=null?fcOut:room;
-  const A0=tOut<=22?150:tOut<=26?120:tOut<=30?90:60;
+  const A0=(tOut<=22?150:tOut<=26?120:tOut<=30?90:60)+(S.flour==="ersa"?30:0);
   /* Temperatura final de la masa (meta 23–24 °C): si salió caliente, fermenta más rápido
      y se acorta la puntata y el atemperado; si salió fría, se alargan. */
   const dt=parseFloat(String(S.fields.l_masa||"").replace(",","."));
@@ -361,7 +363,7 @@ function plan(){
     else if(dt<29){P=15;A=Math.max(45,A0-30);lvl="caliente";}
     else{P=0;A=Math.max(45,A0-60);lvl="muy";}
   }
-  const fridgeIn=add(st,45+P);
+  const fridgeIn=add(st,45+(S.flour==="ersa"?30:0)+P);
   const out=add(bake,-A),oven=add(bake,-30);
   /* Fricción: a mano la masa sube ~3 °C; la amasadora espiral la calienta ~9 °C. */
   const F=S.method==="espiral"?9:3;
@@ -438,10 +440,27 @@ const STEPS_ESP=[
   {id:"e7",t:"Amasar en velocidad media",ill:"espiral",d:"Subí a ~160–180 rpm durante 6 a 8 minutos, hasta que la masa se despegue de la batea, quede lisa y se enrosque en el gancho. No uses la velocidad máxima: calienta y rompe la masa.",min:8},
   {id:"e8",t:"Prueba de la ventana y temperatura",ill:"ventana",d:"Apagá. Estirá un trocito: tiene que quedar fino y translúcido sin romperse; si no, 1–2 minutos más en media. Pinchá la masa con el termómetro: la meta es 23–24 °C. Anotala acá abajo: Fermentera ajusta la puntata y los horarios.",extra:"temp"},
   {id:"e10",t:()=>PL.P?`Puntata: ${PL.P} minutos tapada`:"Sin puntata: bollá enseguida",ill:"reposo",d:()=>`Apagá la máquina y dejá la masa entera en el bol de la amasadora, tapada con un repasador húmedo. Es el único reposo antes de bollar: con la amasadora no se vuelve a amasar. Con ${PL.room} °C en la cocina alcanza con ${PL.P0} minutos: con más calor fermenta más rápido.${PL.P!==PL.P0?` La masa salió a ${PL.dt} °C, así que la puntata queda en ${PL.P} minutos.`:""}`,min:()=>PL.P},
-  {id:"e11",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Apagá la máquina, volcá la masa a la mesada y cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.`},
+  {id:"e11",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Apagá la máquina, volcá la masa a la mesada y cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.${S.flour==="ersa"?" Con la ERSA, firmes pero sin apretar de más: si la superficie se rasga, ya está demasiado tenso.":""}`},
   {id:"e12",t:"A las cajas",ill:"cajas",d:"Con el cierre hacia abajo, 5 cm entre bollos y la caja bien tapada para que no se seque la piel."},
   {id:"e13",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.${PL.lvl==="caliente"||PL.lvl==="muy"?" Dejá las cajas destapadas los primeros 30 minutos para que se enfríen más rápido; después tapalas.":""}`}
 ];
+/* ERSA 000: autólisis (harina + agua 30 min), levadura y sal después, y amasado corto para no endurecer el gluten. */
+const X={
+ x0:{id:"x0",t:"Separá 50 g del agua",d:()=>`De los ${g(C.water)} de agua, separá 50 g en un vaso: ahí vas a disolver la levadura después de la autólisis.`},
+ x1:{id:"x1",t:"Autólisis: solo harina y agua",ill:"espiral",d:()=>`Con la máquina en lento, volcá toda la harina (${g(C.flour)}) de a poco y mezclá 2 minutos, solo hasta que no quede harina seca. Apagá, tapá el bol y dejá reposar 30 minutos: el gluten se arma solo, sin tensarse, y la masa queda más extensible.`,min:30},
+ x1h:{id:"x1h",t:"Autólisis: solo harina y agua",ill:"harina3",d:()=>`Volcá toda la harina (${g(C.flour)}) sobre el agua y mezclá con la mano 2–3 minutos, solo hasta que no quede harina seca. Tapá y dejá reposar 30 minutos: el gluten se arma solo, sin tensarse, y la masa queda más extensible.`,min:30},
+ x2:{id:"x2",t:"La levadura",ill:"levadura",d:()=>`${S.calc.yeast==="seca"?"Disolvé":"Desmenuzá"} los ${dec(C.yeast)} de ${C.yeastName} en los 50 g de agua que separaste y volcalos sobre la masa. ${S.method==="espiral"?"Lento 2 minutos, hasta que se absorba.":"Apretá la masa con los dedos hasta que se absorba."}`,min:2},
+ x3h:{id:"x3h",t:"La sal",ill:"sal",d:()=>`Espolvoreá los ${g(C.salt)} de sal sobre la masa y apretá y plegá 1–2 minutos hasta incorporarla.`},
+ x4:{id:"x4",t:"Velocidad media, solo 3–4 minutos",ill:"espiral",d:"Subí a ~160–180 rpm solo 3–4 minutos, hasta que la masa esté lisa. Con la ERSA no busques una ventana perfecta: el gluten ya es fuerte y si amasás de más la masa queda elástica y vuelve al estirar.",min:4},
+ x4h:{id:"x4h",t:"Amasar 8–10 minutos",ill:"amasar",d:"Empujá con el talón de la mano, plegá y girá un cuarto de vuelta. Cortá apenas esté lisa: con la ERSA, amasar de más deja la masa elástica y vuelve al estirar.",min:10}
+};
+function ersaSteps(base){
+  const by=id=>base.find(x=>x.id===id);
+  const ids=S.method==="espiral"
+    ?["e1","e2","x0","x1","x2","e5","x4","e8","e10","e11","e12","e13"]
+    :["m1","m2","x0","x1h","x2","x3h","x4h","m9","m11","m12","m13","m14","m15"];
+  return ids.map(id=>X[id]||by(id)).filter(Boolean);
+}
 const SECTIONS=[
  {id:"prep",title:"Antes de amasar",when:()=>"Antes de las "+fT(PL.st),steps:[
   {id:"p1",t:()=>C.cubes?"Hielo en el freezer":"El agua",d:()=>C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (unos ${g(C.iceG)}). El resto (${g(C.liq)}) es ${wsrc()}${PL.disp?`, que sale a ${PL.tap} °C`:`, con ${PL.room} °C en la cocina`}: con el hielo queda a ~${C.tf} °C.`:waterText()},
@@ -450,7 +469,7 @@ const SECTIONS=[
   {id:"p4",t:"Balanza y termómetro de pinchar a mano",d:()=>C.yeast<1?"La levadura pesa menos de 1 g: disolvé 10 veces esa cantidad en 100 g del agua y usá 10 g de esa mezcla.":""},
   {id:"p5",t:"Heladera medida",d:"Si marca más de 4 °C, elegí 6–8 °C en la calculadora: baja la levadura sola."}
  ]},
- {id:"d1",get title(){return S.method==="espiral"?"Amasado en la amasadora":"Amasado a mano";},when:()=>fD(PL.st),get steps(){return S.method==="espiral"?STEPS_ESP:this.mano;},mano:[
+ {id:"d1",get title(){return S.method==="espiral"?"Amasado en la amasadora":"Amasado a mano";},when:()=>fD(PL.st),get steps(){const b=S.method==="espiral"?STEPS_ESP:this.mano;return S.flour==="ersa"?ersaSteps(b):b;},mano:[
   {id:"m1",tm:()=>fT(PL.st),t:"Pesar con la tara",ill:"pesar",d:()=>`Poné el bowl vacío en la balanza y tocá tara para dejarla en 0. Pesá cada ingrediente así, uno por vez, y volvé a tarar entre uno y otro. La harina pesala aparte en otro recipiente: ${g(C.flour)}.`},
   {id:"m2",t:()=>C.cubes?"El agua con hielo, primero":"El agua primero",ill:"agua",d:()=>C.cubes?`Bowl grande sobre la balanza y tara. Poné los ${C.cubes} ${C.cubes===1?"cubito":"cubitos"} (${g(C.iceG)}) y completá con ${wsrc()} hasta llegar a ${g(C.water)} en total. El hielo cuenta como agua: siempre va pesado dentro del total, nunca por fuera. Revolvé 1–2 minutos hasta que se derrita.`:`${waterText()} Siempre va primero el líquido y después la harina: así no quedan grumos secos en el fondo.`},
   {id:"m3",t:"Disolver la levadura",ill:"levadura",d:()=>C.yeast<1?"Volcá la mezcla de levadura que preparaste (10 g) en el agua del bowl y revolvé 1 minuto.":(S.calc.yeast==="seca"?`Espolvoreá los ${dec(C.yeast)} de levadura seca sobre el agua y revolvé 1 minuto con la mano.`:`Desmenuzá los ${dec(C.yeast)} de levadura fresca con los dedos sobre el agua y revolvé 1 minuto, hasta que no queden pedacitos. El agua queda apenas turbia.`)},
@@ -463,12 +482,12 @@ const SECTIONS=[
   {id:"m10",t:"Reposo de 15 minutos y 2 minutos más de amasado",ill:"reposo",d:"Tapala con el bowl dado vuelta o un repasador húmedo. Después de amasar de nuevo queda sedosa y brillante.",min:15},
   {id:"m11",t:"Medir la temperatura de la masa",d:"Pinchá el centro con el termómetro. La meta es 23–24 °C.",extra:"temp"},
   {id:"m12",t:()=>PL.P?`Puntata: ${PL.P} minutos tapada`:"Sin puntata: bollá enseguida",ill:"reposo",d:()=>`Masa entera en el bowl, tapada, a temperatura ambiente. Con ${PL.room} °C en la cocina alcanza con ${PL.P0} minutos: con más calor fermenta más rápido.${PL.P!==PL.P0?` La masa salió a ${PL.dt} °C, así que la puntata queda en ${PL.P} minutos.`:""}`,min:()=>PL.P},
-  {id:"m13",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.`},
+  {id:"m13",t:()=>`Bollar ${C.n} × ${g(C.ball)}`,ill:"bollar",d:()=>`Cortá porciones con la rasqueta y pesalas: ${g(C.ball)} cada una. Para cada bollo, estirá la superficie hacia abajo con las dos manos y cerrá la masa por debajo con un pellizco. Después hacelo rodar sobre la mesada, con las manos en forma de taza, hasta que quede tenso y liso.${S.flour==="ersa"?" Con la ERSA, firmes pero sin apretar de más: si la superficie se rasga, ya está demasiado tenso.":""}`},
   {id:"m14",t:"A las cajas",ill:"cajas",d:"Con el cierre hacia abajo, 5 cm entre bollos y la caja bien tapada para que no se seque la piel."},
   {id:"m15",tm:()=>"~"+fT(PL.fridgeIn),t:"A la heladera",d:()=>`Atrás y abajo, donde está más fría. Quedan ahí hasta el ${fD(PL.out)}.${PL.lvl==="caliente"||PL.lvl==="muy"?" Dejá las cajas destapadas los primeros 30 minutos para que se enfríen más rápido; después tapalas.":""}`}
  ],log:{title:"Registro del amasado",fields:[["l_ini","Hora de inicio"],["l_amb","Temp. ambiente (°C)"],["l_agua","Temp. agua (°C)"],["l_masa","Temp. masa final (°C)"],["l_hel","Temp. heladera (°C)"],["l_hora","Hora a la heladera"]]}},
  {id:"d3",title:"Horneado",when:()=>fD(PL.out)+" a "+fT(PL.bake),steps:[
-  {id:"b1",tm:()=>fT(PL.out),t:"Sacar los bollos de la heladera",d:()=>`${PL.A} minutos antes de la primera pizza, calculado con ${PL.tOut} °C (${PL.outSrc}). Siguen tapados, en el lugar más fresco de la cocina.`,min:()=>PL.A},
+  {id:"b1",tm:()=>fT(PL.out),t:"Sacar los bollos de la heladera",d:()=>`${PL.A} minutos antes de la primera pizza, calculado con ${PL.tOut} °C (${PL.outSrc})${S.flour==="ersa"?", más 30 minutos porque la ERSA necesita relajarse antes de estirar":""}. Siguen tapados, en el lugar más fresco de la cocina.`,min:()=>PL.A},
   {id:"b2",t:"Preparar los ingredientes",d:()=>`Por pizza: ${g(C.tom)} de tomate pelado triturado a mano con sal y ${g(C.mozz)} de fior di latte escurrido. Para ${C.n}: ${g(C.tom*C.n)} de tomate y ${g(C.mozz*C.n)} de queso.`},
   {id:"b3",tm:()=>fT(PL.oven),t:"Prender el Koda 16 al máximo",d:"25 a 30 minutos.",min:30},
   {id:"b4",t:"Medir la piedra",d:()=>`Centro de la piedra a ${FL().stone} con el infrarrojo${S.flour==="ersa"?": con la ERSA 000 no más, porque dora rápido":""}.`},
@@ -541,7 +560,8 @@ function renderCalc(){
   if(c.hyd>=69)al.push(["info",`Con ${c.hyd}% de agua la masa es muy húmeda para el calor de Asunción: probá primero con 62–63%.`]);
   if(S.ferm>FL().max)al.push(["",S.flour==="ersa"?"72 h con ERSA 000: la alfa amilasa genera mucho azúcar y la pizza se quema abajo. 48 h es el tope.":"72 h es mucho para una harina de W 250: si al estirar se rompe, volvé a 48 h."]);
   if(S.flour==="ersa")al.push(["info","Con ERSA 000 la piedra va a 400–420 °C, no a 450: con la alfa amilasa dora más rápido. Bajá la llama apenas entra la pizza."]);
-  if(S.flour==="ersa"&&c.hyd>64)al.push(["info",`Con ERSA 000, ${c.hyd}% ya es mucha agua: probá 62–63%.`]);
+  if(S.flour==="ersa"&&c.hyd>66)al.push(["info",`Con ERSA 000, ${c.hyd}% ya es mucha agua: probá 64%.`]);
+  if(S.flour==="ersa"&&S.ferm===24)al.push(["info","Con la ERSA conviene 48 h en frío: la fermentación más larga ablanda el gluten y la masa vuelve menos al estirar."]);
   $("#h_waterT").textContent=PL.disp?`Calculado con agua a ${PL.tap} °C: ${C.cubes?`${C.cubes} ${C.cubes===1?"cubito":"cubitos"} para llegar a ~${PL.target} °C.`:(C.warm?`está más fría de lo necesario: templala a ~${PL.target} °C.`:`no hace falta hielo, la meta es ~${PL.target} °C.`)}`:"Medila con el termómetro y anotala: el hielo se calcula con esa temperatura. Vacío, se usa agua de canilla a temperatura ambiente.";
   $("#h_method").textContent=S.method==="espiral"?`Gastrobras GAE-10: hasta 4 kg de harina por tanda (unos ${Math.floor(4000/(C.flour/c.n))} bollos de ${C.ball} g). Calienta la masa unos 9 °C, así que pide agua más fría.`:"Hasta 1–1,5 kg de harina por tanda. A mano la masa se calienta unos 3 °C.";
   document.querySelectorAll("[data-method]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.method===S.method));
@@ -627,7 +647,7 @@ document.addEventListener("click",e=>{
   const fm=e.target.closest("[data-ferm]");if(fm){S.ferm=+fm.dataset.ferm;save();renderAll();return;}
   const st=e.target.closest(".stepper button");if(st){const k=st.dataset.k,[lo,hi]=LIMITS[k];S.calc[k]=Math.min(hi,Math.max(lo,S.calc[k]+ +st.dataset.d));save();renderCalc();renderSections();return;}
   const me=e.target.closest("[data-method]");if(me){S.method=me.dataset.method;save();renderAll();progress();return;}
-  const fl=e.target.closest("[data-flour]");if(fl){S.flour=fl.dataset.flour;S.calc.hyd=FL().hyd;if(S.ferm>FL().max)S.ferm=FL().rec;save();renderAll();return;}
+  const fl=e.target.closest("[data-flour]");if(fl){S.flour=fl.dataset.flour;S.calc.hyd=FL().hyd;if(S.ferm>FL().max||S.flour==="ersa")S.ferm=FL().rec;save();renderAll();return;}
   const op=e.target.closest("[data-opt]");if(op){S.calc[op.dataset.opt]=op.dataset.v;save();renderCalc();renderSections();return;}
   const c=e.target.closest(".chips button");if(c){const rid=c.parentElement.dataset.r;S.rate[rid]=S.rate[rid]===c.dataset.v?undefined:c.dataset.v;c.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",S.rate[rid]===b.dataset.v));save();diag();return;}
   const tb=e.target.closest(".timer");if(tb){toggleTimer(tb);return;}
